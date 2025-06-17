@@ -1,230 +1,268 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Star, Heart, ShoppingCart } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Search, MapPin, Heart, Share2, MessageCircle, Star, Eye, ShoppingBag, Clock, Shield } from "lucide-react"
+import type { Product, SortOption } from "@/types"
 
-const products = [
-  {
-    id: 1,
-    name: "Cuna Convertible Deluxe",
-    price: 299,
-    rating: 4.8,
-    reviews: 124,
-    category: "Muebles",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Cuna que se convierte en cama infantil, perfecta para acompañar el crecimiento de tu bebé.",
-    seller: "María González",
-  },
-  {
-    id: 2,
-    name: "Set de Alimentación BLW",
-    price: 45,
-    rating: 4.9,
-    reviews: 89,
-    category: "Alimentación",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Set completo para baby-led weaning con platos, cubiertos y baberos de silicona.",
-    seller: "Ana Rodríguez",
-  },
-  {
-    id: 3,
-    name: "Portabebés Ergonómico",
-    price: 89,
-    rating: 4.7,
-    reviews: 156,
-    category: "Transporte",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Portabebés ergonómico que respeta la posición natural del bebé y cuida tu espalda.",
-    seller: "Carmen López",
-  },
-  {
-    id: 4,
-    name: "Juguetes Montessori 0-12m",
-    price: 67,
-    rating: 4.6,
-    reviews: 78,
-    category: "Juguetes",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Set de juguetes Montessori diseñados para estimular el desarrollo sensorial.",
-    seller: "Laura Martínez",
-  },
-  {
-    id: 5,
-    name: "Ropa Orgánica Bebé",
-    price: 34,
-    rating: 4.8,
-    reviews: 92,
-    category: "Ropa",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Bodies y pijamas de algodón orgánico, suaves y respetuosos con la piel del bebé.",
-    seller: "Patricia Ruiz",
-  },
-  {
-    id: 6,
-    name: "Monitor de Sueño Inteligente",
-    price: 199,
-    rating: 4.5,
-    reviews: 67,
-    category: "Tecnología",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Monitor que rastrea patrones de sueño y te ayuda a establecer rutinas saludables.",
-    seller: "Isabel Torres",
-  },
+// Empty array with explicit type
+const products: Product[] = []
+
+const categories = [
+  "Todas las categorías",
+  "Ropa de bebé",
+  "Juguetes",
+  "Cochecitos",
+  "Sillas de coche",
+  "Alimentación",
+  "Cuidado",
+  "Libros",
+  "Decoración",
 ]
 
-const categories = ["Todos", "Muebles", "Alimentación", "Transporte", "Juguetes", "Ropa", "Tecnología"]
+const conditions = ["Todas las condiciones", "Nuevo", "Como nuevo", "Buen estado", "Estado regular"]
+
+const sortOptions: SortOption[] = [
+  { value: "newest", label: "Más recientes" },
+  { value: "price-low", label: "Precio: menor a mayor" },
+  { value: "price-high", label: "Precio: mayor a menor" },
+  { value: "popular", label: "Más populares" },
+]
 
 export default function MarketplacePage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("Todos")
-  const [sortBy, setSortBy] = useState("popular")
+  const [selectedCategory, setSelectedCategory] = useState("Todas las categorías")
+  const [selectedCondition, setSelectedCondition] = useState("Todas las condiciones")
+  const [sortBy, setSortBy] = useState("newest")
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesSearch =
+        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "price-low":
-        return a.price - b.price
-      case "price-high":
-        return b.price - a.price
-      case "rating":
-        return b.rating - a.rating
-      default:
-        return b.reviews - a.reviews
-    }
-  })
+      const matchesCategory = selectedCategory === "Todas las categorías" || product.category === selectedCategory
+
+      const matchesCondition = selectedCondition === "Todas las condiciones" || product.condition === selectedCondition
+
+      return matchesSearch && matchesCategory && matchesCondition
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.price - b.price
+        case "price-high":
+          return b.price - a.price
+        case "popular":
+          return b.views - a.views
+        case "newest":
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      }
+    })
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <section className="bg-gradient-to-br from-pink-50 to-purple-50 py-16">
+      <section className="bg-gradient-to-br from-orange-50 to-red-50 py-16">
         <div className="container px-4">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Marketplace</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Descubre productos recomendados por otras madres de nuestra comunidad
+              Compra y vende productos para bebés y niños de forma segura entre madres de confianza
             </p>
           </div>
         </div>
       </section>
 
-      {/* Filters */}
-      <section className="py-8 bg-white border-b">
-        <div className="container px-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Buscar productos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      <div className="container px-4 py-8">
+        {/* Filters */}
+        <Card className="mb-8">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Buscar productos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {conditions.map((condition) => (
+                    <SelectItem key={condition} value={condition}>
+                      {condition}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </CardContent>
+        </Card>
 
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popular">Más Popular</SelectItem>
-                <SelectItem value="rating">Mejor Valorado</SelectItem>
-                <SelectItem value="price-low">Precio: Menor a Mayor</SelectItem>
-                <SelectItem value="price-high">Precio: Mayor a Menor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </section>
-
-      {/* Products Grid */}
-      <section className="py-12">
-        <div className="container px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sortedProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative">
-                  <Image
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    width={300}
-                    height={200}
-                    className="w-full h-48 object-cover"
-                  />
-                  <Button size="sm" variant="ghost" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
+        {/* Results */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="hover:shadow-lg transition-shadow">
+              <div className="relative">
+                <img
+                  src={product.images[0] || "/placeholder.svg?height=200&width=300"}
+                  alt={product.title}
+                  className="w-full h-48 object-cover rounded-t-lg"
+                />
+                <div className="absolute top-2 left-2">
+                  <Badge
+                    className={`${
+                      product.condition === "new"
+                        ? "bg-green-500"
+                        : product.condition === "like-new"
+                          ? "bg-blue-500"
+                          : product.condition === "good"
+                            ? "bg-yellow-500"
+                            : "bg-gray-500"
+                    } text-white`}
+                  >
+                    {product.condition === "new"
+                      ? "Nuevo"
+                      : product.condition === "like-new"
+                        ? "Como nuevo"
+                        : product.condition === "good"
+                          ? "Buen estado"
+                          : "Regular"}
+                  </Badge>
+                </div>
+                <div className="absolute top-2 right-2">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-white/80 hover:bg-white">
                     <Heart className="h-4 w-4" />
                   </Button>
                 </div>
-
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <Badge variant="secondary" className="mb-2">
-                        {product.category}
-                      </Badge>
-                      <CardTitle className="text-lg leading-tight">{product.name}</CardTitle>
-                    </div>
+                {product.originalPrice && (
+                  <div className="absolute bottom-2 left-2">
+                    <Badge variant="destructive">
+                      -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                    </Badge>
                   </div>
-                </CardHeader>
+                )}
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.title}</h3>
+                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
 
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
-
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-2">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium ml-1">{product.rating}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">({product.reviews} reseñas)</span>
+                    <span className="text-2xl font-bold text-green-600">€{product.price}</span>
+                    {product.originalPrice && (
+                      <span className="text-sm text-gray-500 line-through">€{product.originalPrice}</span>
+                    )}
                   </div>
+                  <Badge variant="outline" className="text-xs">
+                    {product.category}
+                  </Badge>
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold text-pink-600">€{product.price}</p>
-                      <p className="text-xs text-gray-500">Por {product.seller}</p>
+                <div className="flex items-center space-x-3 mb-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={product.seller.avatar || "/placeholder.svg"} />
+                    <AvatarFallback>{product.seller.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-1">
+                      <p className="text-sm font-medium truncate">{product.seller.name}</p>
+                      {product.seller.verified && <Shield className="h-3 w-3 text-blue-500" />}
                     </div>
-                    <Button size="sm" className="bg-pink-500 hover:bg-pink-600">
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Ver Detalles
-                    </Button>
+                    <div className="flex items-center space-x-1">
+                      <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                      <span className="text-xs text-gray-600">
+                        {product.seller.rating} ({product.seller.reviewCount})
+                      </span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
 
-          {sortedProducts.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No se encontraron productos que coincidan con tu búsqueda.</p>
-            </div>
-          )}
+                <div className="flex items-center text-xs text-gray-500 mb-3">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {product.location}
+                  <Eye className="h-3 w-3 ml-3 mr-1" />
+                  {product.views}
+                  <Clock className="h-3 w-3 ml-3 mr-1" />
+                  {new Date(product.createdAt).toLocaleDateString()}
+                </div>
+
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {product.tags.slice(0, 2).map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {product.tags.length > 2 && (
+                    <Badge variant="secondary" className="text-xs">
+                      +{product.tags.length - 2}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex space-x-2">
+                  <Button className="flex-1" size="sm">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Contactar
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </section>
+
+        {/* Empty State */}
+        {filteredProducts.length === 0 && (
+          <Card>
+            <CardContent className="pt-6 text-center py-12">
+              <ShoppingBag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Aún no hay productos disponibles.</p>
+              <p className="text-gray-400 text-sm mt-2">
+                Pronto tendrás acceso a un marketplace seguro para comprar y vender productos entre madres.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
