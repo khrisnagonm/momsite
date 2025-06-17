@@ -17,9 +17,8 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Plus, X, Save, User, MapPin, Award, DollarSign, Globe, Instagram, Facebook } from "lucide-react"
 import Link from "next/link"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { getDb } from "@/lib/firebase"
 import { toast } from "sonner"
-import type { Professional } from "@/types"
 
 const specialtyOptions = [
   "Lactancia",
@@ -130,10 +129,17 @@ export default function NewProfessionalPage() {
       return
     }
 
+    if (!user) {
+      toast.error("Usuario no autenticado")
+      return
+    }
+
     setSaving(true)
 
     try {
-      const professionalData: Omit<Professional, "id"> = {
+      const db = getDb()
+
+      const professionalData = {
         name: formData.name,
         title: formData.title,
         specialties: selectedSpecialties,
@@ -164,16 +170,18 @@ export default function NewProfessionalPage() {
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        createdBy: user!.uid,
+        createdBy: user.uid,
       }
 
-      await addDoc(collection(db, "professionals"), professionalData)
+      const collectionRef = collection(db, "professionals")
+      await addDoc(collectionRef, professionalData)
 
       toast.success("Profesional agregado correctamente")
       router.push("/admin/profesionales")
     } catch (error) {
       console.error("Error adding professional:", error)
-      toast.error("Error al agregar el profesional")
+      const errorMessage = error instanceof Error ? error.message : "Error al agregar el profesional"
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }
