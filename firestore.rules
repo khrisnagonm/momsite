@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para usuarios - cada usuario puede leer/escribir su propio documento
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para eventos - todos pueden leer, solo admins pueden escribir
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.email in ['khrisnagonzalezm@gmail.com', 'admin@momsite.com'];
+    }
+    
+    // Reglas para profesionales - todos pueden leer, solo admins pueden escribir
+    match /professionals/{professionalId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.email in ['khrisnagonzalezm@gmail.com', 'admin@momsite.com'];
+    }
+    
+    // Reglas para lugares - todos pueden leer, solo admins pueden escribir
+    match /places/{placeId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.email in ['khrisnagonzalezm@gmail.com', 'admin@momsite.com'];
+    }
+    
+    // Reglas para marketplace - todos pueden leer, solo admins pueden escribir
+    match /marketplace/{itemId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.email in ['khrisnagonzalezm@gmail.com', 'admin@momsite.com'];
+    }
+    
+    // Reglas para posts del foro - usuarios autenticados pueden leer/escribir sus propios posts
+    match /forum_posts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.authorId ||
+         request.auth.token.email in ['khrisnagonzalezm@gmail.com', 'admin@momsite.com']);
+    }
+    
+    // Permitir acceso completo a usuarios autenticados (temporal)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

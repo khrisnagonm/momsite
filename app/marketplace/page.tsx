@@ -1,0 +1,230 @@
+"use client"
+
+import { useState } from "react"
+import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, Star, Heart, ShoppingCart } from "lucide-react"
+
+const products = [
+  {
+    id: 1,
+    name: "Cuna Convertible Deluxe",
+    price: 299,
+    rating: 4.8,
+    reviews: 124,
+    category: "Muebles",
+    image: "/placeholder.svg?height=200&width=200",
+    description: "Cuna que se convierte en cama infantil, perfecta para acompañar el crecimiento de tu bebé.",
+    seller: "María González",
+  },
+  {
+    id: 2,
+    name: "Set de Alimentación BLW",
+    price: 45,
+    rating: 4.9,
+    reviews: 89,
+    category: "Alimentación",
+    image: "/placeholder.svg?height=200&width=200",
+    description: "Set completo para baby-led weaning con platos, cubiertos y baberos de silicona.",
+    seller: "Ana Rodríguez",
+  },
+  {
+    id: 3,
+    name: "Portabebés Ergonómico",
+    price: 89,
+    rating: 4.7,
+    reviews: 156,
+    category: "Transporte",
+    image: "/placeholder.svg?height=200&width=200",
+    description: "Portabebés ergonómico que respeta la posición natural del bebé y cuida tu espalda.",
+    seller: "Carmen López",
+  },
+  {
+    id: 4,
+    name: "Juguetes Montessori 0-12m",
+    price: 67,
+    rating: 4.6,
+    reviews: 78,
+    category: "Juguetes",
+    image: "/placeholder.svg?height=200&width=200",
+    description: "Set de juguetes Montessori diseñados para estimular el desarrollo sensorial.",
+    seller: "Laura Martínez",
+  },
+  {
+    id: 5,
+    name: "Ropa Orgánica Bebé",
+    price: 34,
+    rating: 4.8,
+    reviews: 92,
+    category: "Ropa",
+    image: "/placeholder.svg?height=200&width=200",
+    description: "Bodies y pijamas de algodón orgánico, suaves y respetuosos con la piel del bebé.",
+    seller: "Patricia Ruiz",
+  },
+  {
+    id: 6,
+    name: "Monitor de Sueño Inteligente",
+    price: 199,
+    rating: 4.5,
+    reviews: 67,
+    category: "Tecnología",
+    image: "/placeholder.svg?height=200&width=200",
+    description: "Monitor que rastrea patrones de sueño y te ayuda a establecer rutinas saludables.",
+    seller: "Isabel Torres",
+  },
+]
+
+const categories = ["Todos", "Muebles", "Alimentación", "Transporte", "Juguetes", "Ropa", "Tecnología"]
+
+export default function MarketplacePage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("Todos")
+  const [sortBy, setSortBy] = useState("popular")
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case "price-low":
+        return a.price - b.price
+      case "price-high":
+        return b.price - a.price
+      case "rating":
+        return b.rating - a.rating
+      default:
+        return b.reviews - a.reviews
+    }
+  })
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <section className="bg-gradient-to-br from-pink-50 to-purple-50 py-16">
+        <div className="container px-4">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Marketplace</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Descubre productos recomendados por otras madres de nuestra comunidad
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Filters */}
+      <section className="py-8 bg-white border-b">
+        <div className="container px-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar productos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="popular">Más Popular</SelectItem>
+                <SelectItem value="rating">Mejor Valorado</SelectItem>
+                <SelectItem value="price-low">Precio: Menor a Mayor</SelectItem>
+                <SelectItem value="price-high">Precio: Mayor a Menor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
+      {/* Products Grid */}
+      <section className="py-12">
+        <div className="container px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {sortedProducts.map((product) => (
+              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="relative">
+                  <Image
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    width={300}
+                    height={200}
+                    className="w-full h-48 object-cover"
+                  />
+                  <Button size="sm" variant="ghost" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <Badge variant="secondary" className="mb-2">
+                        {product.category}
+                      </Badge>
+                      <CardTitle className="text-lg leading-tight">{product.name}</CardTitle>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm font-medium ml-1">{product.rating}</span>
+                    </div>
+                    <span className="text-sm text-gray-500">({product.reviews} reseñas)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-pink-600">€{product.price}</p>
+                      <p className="text-xs text-gray-500">Por {product.seller}</p>
+                    </div>
+                    <Button size="sm" className="bg-pink-500 hover:bg-pink-600">
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Ver Detalles
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {sortedProducts.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">No se encontraron productos que coincidan con tu búsqueda.</p>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  )
+}
