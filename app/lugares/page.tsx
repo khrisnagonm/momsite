@@ -34,270 +34,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 
-const places = [
-  {
-    id: 1,
-    name: "Café Mamá & Bebé",
-    type: "Cafetería",
-    rating: 4.8,
-    reviewCount: 142,
-    address: "Calle Serrano, 25, Madrid",
-    phone: "+34 91 435 6789",
-    website: "www.cafemamabebe.com",
-    image: "/placeholder.svg?height=200&width=300",
-    images: [
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-    ],
-    priceRange: "€€",
-    openingHours: "Lun-Dom 8:00-20:00",
-    ageRange: "0-8 años",
-    description:
-      "Cafetería especializada en familias con zona de juegos segura, menú infantil saludable y espacio para lactancia. Ambiente acogedor perfecto para encuentros de madres.",
-    features: [
-      "Zona de juegos interior",
-      "Menú infantil",
-      "Espacio lactancia",
-      "Tronas disponibles",
-      "WiFi gratuito",
-      "Aparcamiento cercano",
-      "Acceso cochecitos",
-      "Cambiador",
-    ],
-    amenities: {
-      wifi: true,
-      parking: true,
-      strollerFriendly: true,
-      changingRoom: true,
-      breastfeeding: true,
-      kidsMenu: true,
-      playArea: true,
-      highChairs: true,
-    },
-    events: ["Cuentacuentos Martes 11:00", "Taller BLW Jueves 17:00", "Música para bebés Sábados 10:00"],
-    verified: true,
-  },
-  {
-    id: 2,
-    name: "Parque de los Niños",
-    type: "Parque",
-    rating: 4.6,
-    reviewCount: 89,
-    address: "Avenida de la Paz, s/n, Barcelona",
-    phone: "Información municipal",
-    website: "www.barcelona.cat/parques",
-    image: "/placeholder.svg?height=200&width=300",
-    images: [
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-    ],
-    priceRange: "Gratis",
-    openingHours: "24 horas",
-    ageRange: "0-12 años",
-    description:
-      "Parque público con zonas de juego diferenciadas por edades, área de picnic y senderos para pasear con cochecitos. Muy popular entre familias del barrio.",
-    features: [
-      "Juegos por edades",
-      "Área de picnic",
-      "Senderos accesibles",
-      "Fuentes de agua",
-      "Bancos con sombra",
-      "Zona deportiva",
-      "Baños públicos",
-      "Seguridad",
-    ],
-    amenities: {
-      wifi: false,
-      parking: true,
-      strollerFriendly: true,
-      changingRoom: false,
-      breastfeeding: false,
-      kidsMenu: false,
-      playArea: true,
-      highChairs: false,
-    },
-    events: ["Tai Chi familiar Domingos 9:00", "Mercadillo infantil 1er Sábado mes"],
-    verified: true,
-  },
-  {
-    id: 3,
-    name: "Centro Lúdico Pequeños Exploradores",
-    type: "Centro de juegos",
-    rating: 4.9,
-    reviewCount: 156,
-    address: "Centro Comercial Plaza Norte, Valencia",
-    phone: "+34 96 352 4567",
-    website: "www.pequenosexploradores.com",
-    image: "/placeholder.svg?height=200&width=300",
-    images: [
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-    ],
-    priceRange: "€€€",
-    openingHours: "Lun-Dom 10:00-21:00",
-    ageRange: "1-10 años",
-    description:
-      "Centro de juegos cubierto con actividades supervisadas, talleres creativos y zona de descanso para padres. Ideal para días de lluvia o calor extremo.",
-    features: [
-      "Juegos cubiertos",
-      "Actividades supervisadas",
-      "Talleres creativos",
-      "Zona padres",
-      "Cafetería integrada",
-      "Fiestas infantiles",
-      "Monitores especializados",
-      "Aire acondicionado",
-    ],
-    amenities: {
-      wifi: true,
-      parking: true,
-      strollerFriendly: true,
-      changingRoom: true,
-      breastfeeding: true,
-      kidsMenu: true,
-      playArea: true,
-      highChairs: true,
-    },
-    events: ["Taller de manualidades Miércoles 16:00", "Cine infantil Viernes 18:00", "Cumpleaños grupales Sábados"],
-    verified: true,
-  },
-  {
-    id: 4,
-    name: "Biblioteca Infantil Cuentos y Sueños",
-    type: "Biblioteca",
-    rating: 4.7,
-    reviewCount: 73,
-    address: "Plaza de la Cultura, 8, Sevilla",
-    phone: "+34 95 421 8901",
-    website: "www.bibliotecasevilla.es",
-    image: "/placeholder.svg?height=200&width=300",
-    images: [
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-    ],
-    priceRange: "Gratis",
-    openingHours: "Lun-Vie 9:00-20:00, Sáb 10:00-14:00",
-    ageRange: "0-14 años",
-    description:
-      "Biblioteca especializada en literatura infantil con sala de lactancia, cuentacuentos regulares y talleres de lectura para diferentes edades.",
-    features: [
-      "Sala infantil",
-      "Cuentacuentos",
-      "Talleres de lectura",
-      "Sala lactancia",
-      "Zona bebés",
-      "Actividades familiares",
-      "Préstamo libros",
-      "Eventos culturales",
-    ],
-    amenities: {
-      wifi: true,
-      parking: false,
-      strollerFriendly: true,
-      changingRoom: true,
-      breastfeeding: true,
-      kidsMenu: false,
-      playArea: false,
-      highChairs: false,
-    },
-    events: [
-      "Cuentacuentos Martes y Jueves 17:00",
-      "Club de lectura madres Viernes 19:00",
-      "Taller escritura creativa Sábados 11:00",
-    ],
-    verified: true,
-  },
-  {
-    id: 5,
-    name: "Piscina Municipal Familiar",
-    type: "Piscina",
-    rating: 4.4,
-    reviewCount: 67,
-    address: "Complejo Deportivo Norte, Bilbao",
-    phone: "+34 94 424 5678",
-    website: "www.deportebilbao.com",
-    image: "/placeholder.svg?height=200&width=300",
-    images: [
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-    ],
-    priceRange: "€",
-    openingHours: "Lun-Dom 7:00-22:00",
-    ageRange: "0+ años",
-    description:
-      "Complejo acuático con piscina infantil, clases de natación para bebés y zona de relajación para padres. Instalaciones modernas y seguras.",
-    features: [
-      "Piscina infantil",
-      "Clases natación bebés",
-      "Vestuarios familiares",
-      "Zona relax padres",
-      "Socorristas",
-      "Taquillas",
-      "Duchas agua caliente",
-      "Cafetería",
-    ],
-    amenities: {
-      wifi: false,
-      parking: true,
-      strollerFriendly: true,
-      changingRoom: true,
-      breastfeeding: false,
-      kidsMenu: false,
-      playArea: false,
-      highChairs: false,
-    },
-    events: ["Matronatación Lunes y Miércoles 10:00", "Aqua fitness mamás Martes y Jueves 11:00"],
-    verified: true,
-  },
-  {
-    id: 6,
-    name: "Granja Escuela Los Olivos",
-    type: "Granja escuela",
-    rating: 4.8,
-    reviewCount: 94,
-    address: "Carretera de Toledo, Km 15, Madrid",
-    phone: "+34 91 876 5432",
-    website: "www.granjalossolivos.com",
-    image: "/placeholder.svg?height=200&width=300",
-    images: [
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-      "/placeholder.svg?height=200&width=300",
-    ],
-    priceRange: "€€",
-    openingHours: "Sáb-Dom 10:00-18:00",
-    ageRange: "2+ años",
-    description:
-      "Granja educativa donde los niños pueden interactuar con animales, aprender sobre la naturaleza y disfrutar de actividades al aire libre en un entorno seguro.",
-    features: [
-      "Animales de granja",
-      "Talleres educativos",
-      "Huerto ecológico",
-      "Zona picnic",
-      "Paseos en pony",
-      "Tienda productos",
-      "Restaurante rural",
-      "Aparcamiento gratuito",
-    ],
-    amenities: {
-      wifi: false,
-      parking: true,
-      strollerFriendly: false,
-      changingRoom: true,
-      breastfeeding: true,
-      kidsMenu: true,
-      playArea: true,
-      highChairs: true,
-    },
-    events: ["Taller de huerto Sábados 12:00", "Cuidado de animales Domingos 15:00", "Cumpleaños temáticos"],
-    verified: true,
-  },
-]
+const places = []
 
 const placeTypes = [
   "Todos",
@@ -510,14 +247,22 @@ export default function PlacesPage() {
                   </div>
 
                   {/* Amenities Icons */}
-                <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {place.amenities.wifi && <Wifi className="h-4 w-4 text-blue-500" aria-label="WiFi" />}
                     {place.amenities.parking && <Car className="h-4 w-4 text-green-500" aria-label="Aparcamiento" />}
-                    {place.amenities.kidsMenu && <Utensils className="h-4 w-4 text-orange-500" aria-label="Menú infantil" />}
-                    {place.amenities.playArea && <Baby className="h-4 w-4 text-purple-500" aria-label="Zona de juegos" />}
-                    {place.amenities.breastfeeding && <Heart className="h-4 w-4 text-pink-500" aria-label="Lactancia" />}
-                    {place.amenities.changingRoom && <Shield className="h-4 w-4 text-indigo-500" aria-label="Cambiador" />}
-                </div>
+                    {place.amenities.kidsMenu && (
+                      <Utensils className="h-4 w-4 text-orange-500" aria-label="Menú infantil" />
+                    )}
+                    {place.amenities.playArea && (
+                      <Baby className="h-4 w-4 text-purple-500" aria-label="Zona de juegos" />
+                    )}
+                    {place.amenities.breastfeeding && (
+                      <Heart className="h-4 w-4 text-pink-500" aria-label="Lactancia" />
+                    )}
+                    {place.amenities.changingRoom && (
+                      <Shield className="h-4 w-4 text-indigo-500" aria-label="Cambiador" />
+                    )}
+                  </div>
 
                   <div className="flex space-x-2 pt-2">
                     <Dialog>
@@ -543,7 +288,8 @@ export default function PlacesPage() {
 
           {filteredPlaces.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No se encontraron lugares que coincidan con tu búsqueda.</p>
+              <p className="text-gray-500 text-lg">Aún no hay lugares registrados en la plataforma.</p>
+              <p className="text-gray-400 text-sm mt-2">Los lugares aparecerán aquí una vez que se registren.</p>
             </div>
           )}
         </div>

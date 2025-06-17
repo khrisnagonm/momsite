@@ -37,158 +37,8 @@ import {
   Smile,
 } from "lucide-react"
 
-const forumPosts = [
-  {
-    id: 1,
-    title: "¿Cómo lidiar con las rabietas de mi hijo de 2 años?",
-    content:
-      "Hola mamás, necesito consejos urgentes. Mi pequeño de 2 años ha empezado con rabietas terribles y no sé cómo manejarlas. Ayer en el supermercado fue horrible... ¿Alguien ha pasado por esto? ¿Qué estrategias os han funcionado?",
-    author: {
-      name: "María González",
-      avatar: "/placeholder.svg?height=40&width=40",
-      badge: "Mamá de 2",
-      joinDate: "Hace 6 meses",
-    },
-    category: "Crianza",
-    subcategory: "Comportamiento",
-    createdAt: "Hace 2 horas",
-    replies: 23,
-    likes: 15,
-    views: 156,
-    isPinned: false,
-    isHot: true,
-    tags: ["rabietas", "2años", "comportamiento", "ayuda"],
-    lastReply: {
-      author: "Carmen López",
-      time: "Hace 30 min",
-    },
-  },
-  {
-    id: 2,
-    title: "Recetas fáciles para la cena cuando no tienes tiempo",
-    content:
-      "¡Hola chicas! Quería compartir algunas recetas súper rápidas que he descubierto para esas noches en las que llegas agotada del trabajo. Son nutritivas y a los peques les encantan. ¿Queréis que las comparta?",
-    author: {
-      name: "Ana Rodríguez",
-      avatar: "/placeholder.svg?height=40&width=40",
-      badge: "Mamá de 1",
-      joinDate: "Hace 3 meses",
-    },
-    category: "Alimentación",
-    subcategory: "Recetas",
-    createdAt: "Hace 4 horas",
-    replies: 31,
-    likes: 42,
-    views: 289,
-    isPinned: false,
-    isHot: true,
-    tags: ["recetas", "cena", "rápido", "nutritivo"],
-    lastReply: {
-      author: "Laura Martínez",
-      time: "Hace 15 min",
-    },
-  },
-  {
-    id: 3,
-    title: "📌 Bienvenidas nuevas mamás - Léeme primero",
-    content:
-      "¡Hola y bienvenidas a nuestra comunidad! Este es un espacio seguro donde podéis compartir vuestras experiencias, dudas y alegrías de la maternidad. Aquí tenéis las normas básicas de convivencia y algunos consejos para aprovechar al máximo el foro.",
-    author: {
-      name: "Equipo MomSite",
-      avatar: "/placeholder.svg?height=40&width=40",
-      badge: "Moderadora",
-      joinDate: "Fundadora",
-    },
-    category: "Anuncios",
-    subcategory: "Bienvenida",
-    createdAt: "Hace 1 semana",
-    replies: 127,
-    likes: 89,
-    views: 1250,
-    isPinned: true,
-    isHot: false,
-    tags: ["bienvenida", "normas", "comunidad"],
-    lastReply: {
-      author: "Patricia Ruiz",
-      time: "Hace 2 horas",
-    },
-  },
-  {
-    id: 4,
-    title: "Mi experiencia con la lactancia mixta",
-    content:
-      "Quería compartir mi experiencia con la lactancia mixta por si puede ayudar a alguna mamá que esté pasando por lo mismo. Al principio me sentía muy culpable, pero ahora veo que fue la mejor decisión para mi bebé y para mí...",
-    author: {
-      name: "Carmen López",
-      avatar: "/placeholder.svg?height=40&width=40",
-      badge: "Mamá de 3",
-      joinDate: "Hace 1 año",
-    },
-    category: "Lactancia",
-    subcategory: "Experiencias",
-    createdAt: "Hace 6 horas",
-    replies: 18,
-    likes: 28,
-    views: 203,
-    isPinned: false,
-    isHot: false,
-    tags: ["lactancia", "mixta", "experiencia", "culpa"],
-    lastReply: {
-      author: "Isabel Torres",
-      time: "Hace 1 hora",
-    },
-  },
-  {
-    id: 5,
-    title: "¿Alguien conoce un buen pediatra en Madrid?",
-    content:
-      "Hola! Nos acabamos de mudar a Madrid y necesito encontrar un pediatra de confianza para mi hija de 8 meses. ¿Alguien puede recomendarme alguno? Preferiblemente por la zona centro o norte. ¡Gracias!",
-    author: {
-      name: "Laura Martínez",
-      avatar: "/placeholder.svg?height=40&width=40",
-      badge: "Mamá de 1",
-      joinDate: "Hace 2 meses",
-    },
-    category: "Salud",
-    subcategory: "Recomendaciones",
-    createdAt: "Hace 8 horas",
-    replies: 12,
-    likes: 8,
-    views: 94,
-    isPinned: false,
-    isHot: false,
-    tags: ["pediatra", "madrid", "recomendación", "salud"],
-    lastReply: {
-      author: "Sofía Hernández",
-      time: "Hace 3 horas",
-    },
-  },
-  {
-    id: 6,
-    title: "Planes divertidos para el fin de semana con niños",
-    content:
-      "¡Hola mamás! ¿Qué planes tenéis para este fin de semana? Yo estoy sin ideas y mi peque de 4 años ya me está pidiendo hacer algo especial. ¿Alguna sugerencia de actividades chulas en Barcelona?",
-    author: {
-      name: "Patricia Ruiz",
-      avatar: "/placeholder.svg?height=40&width=40",
-      badge: "Mamá de 2",
-      joinDate: "Hace 8 meses",
-    },
-    category: "Ocio",
-    subcategory: "Planes",
-    createdAt: "Hace 12 horas",
-    replies: 25,
-    likes: 19,
-    views: 178,
-    isPinned: false,
-    isHot: false,
-    tags: ["planes", "fin de semana", "barcelona", "actividades"],
-    lastReply: {
-      author: "Elena García",
-      time: "Hace 4 horas",
-    },
-  },
-]
+const forumPosts = []
+
 
 const categories = [
   { name: "Todas", icon: <MessageCircle className="h-4 w-4" />, count: 156 },
@@ -323,21 +173,21 @@ export default function ForumPage() {
                     <Users className="h-4 w-4 text-purple-500" />
                     <span className="text-sm">Miembros activos</span>
                   </div>
-                  <span className="font-semibold">1,247</span>
+                  <span className="font-semibold">0</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <MessageCircle className="h-4 w-4 text-blue-500" />
                     <span className="text-sm">Posts totales</span>
                   </div>
-                  <span className="font-semibold">3,456</span>
+                  <span className="font-semibold">0</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="h-4 w-4 text-green-500" />
                     <span className="text-sm">Posts hoy</span>
                   </div>
-                  <span className="font-semibold">23</span>
+                  <span className="font-semibold">0</span>
                 </div>
               </CardContent>
             </Card>
@@ -349,7 +199,7 @@ export default function ForumPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {["María G.", "Carmen L.", "Ana R.", "Laura M."].map((user, index) => (
+                  {[].map((user, index) => (
                     <div key={index} className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <Avatar className="h-6 w-6">
@@ -508,7 +358,7 @@ export default function ForumPage() {
               <Card>
                 <CardContent className="pt-6 text-center py-12">
                   <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">No se encontraron posts que coincidan con tu búsqueda.</p>
+                  <p className="text-gray-500 text-lg">Aún no hay posts en el foro.</p>
                   <Button onClick={handleNewPost} className="mt-4 bg-purple-500 hover:bg-purple-600">
                     Crear el primer post
                   </Button>

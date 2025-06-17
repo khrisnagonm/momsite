@@ -9,74 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Star, Heart, ShoppingCart } from "lucide-react"
 
-const products = [
-  {
-    id: 1,
-    name: "Cuna Convertible Deluxe",
-    price: 299,
-    rating: 4.8,
-    reviews: 124,
-    category: "Muebles",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Cuna que se convierte en cama infantil, perfecta para acompañar el crecimiento de tu bebé.",
-    seller: "María González",
-  },
-  {
-    id: 2,
-    name: "Set de Alimentación BLW",
-    price: 45,
-    rating: 4.9,
-    reviews: 89,
-    category: "Alimentación",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Set completo para baby-led weaning con platos, cubiertos y baberos de silicona.",
-    seller: "Ana Rodríguez",
-  },
-  {
-    id: 3,
-    name: "Portabebés Ergonómico",
-    price: 89,
-    rating: 4.7,
-    reviews: 156,
-    category: "Transporte",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Portabebés ergonómico que respeta la posición natural del bebé y cuida tu espalda.",
-    seller: "Carmen López",
-  },
-  {
-    id: 4,
-    name: "Juguetes Montessori 0-12m",
-    price: 67,
-    rating: 4.6,
-    reviews: 78,
-    category: "Juguetes",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Set de juguetes Montessori diseñados para estimular el desarrollo sensorial.",
-    seller: "Laura Martínez",
-  },
-  {
-    id: 5,
-    name: "Ropa Orgánica Bebé",
-    price: 34,
-    rating: 4.8,
-    reviews: 92,
-    category: "Ropa",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Bodies y pijamas de algodón orgánico, suaves y respetuosos con la piel del bebé.",
-    seller: "Patricia Ruiz",
-  },
-  {
-    id: 6,
-    name: "Monitor de Sueño Inteligente",
-    price: 199,
-    rating: 4.5,
-    reviews: 67,
-    category: "Tecnología",
-    image: "/placeholder.svg?height=200&width=200",
-    description: "Monitor que rastrea patrones de sueño y te ayuda a establecer rutinas saludables.",
-    seller: "Isabel Torres",
-  },
-]
+const products = []
 
 const categories = ["Todos", "Muebles", "Alimentación", "Transporte", "Juguetes", "Ropa", "Tecnología"]
 
@@ -220,7 +153,8 @@ export default function MarketplacePage() {
 
           {sortedProducts.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No se encontraron productos que coincidan con tu búsqueda.</p>
+              <p className="text-gray-500 text-lg">Aún no hay productos disponibles en el marketplace.</p>
+              <p className="text-gray-400 text-sm mt-2">Los productos aparecerán aquí una vez que se publiquen.</p>
             </div>
           )}
         </div>

@@ -26,116 +26,16 @@ import {
   CalendarDays,
 } from "lucide-react"
 
-const events = [
-  {
-    id: 1,
-    title: "Taller de Lactancia Materna para Primerizas",
-    description:
-      "Aprende todo sobre lactancia materna con nuestra consultora certificada. Resolveremos dudas sobre posiciones, problemas comunes y cómo establecer una rutina exitosa.",
-    fullDescription:
-      "Un taller completo diseñado especialmente para madres primerizas que quieren aprender sobre lactancia materna. Cubriremos técnicas de agarre, posiciones cómodas, cómo saber si el bebé está recibiendo suficiente leche, y cómo manejar problemas comunes como grietas o mastitis. También hablaremos sobre la extracción y conservación de leche materna para madres trabajadoras.",
-    category: "Lactancia",
-    type: "Taller",
-    date: "2024-01-20",
-    time: "10:00",
-    duration: "2 horas",
-    location: "Centro Maternal Madrid",
-    address: "Calle Serrano, 45, Madrid",
-    price: 25,
-    maxAttendees: 15,
-    currentAttendees: 8,
-    image: "/placeholder.svg?height=200&width=300",
-    organizer: {
-      name: "Dra. Carmen López",
-      title: "Consultora de Lactancia IBCLC",
-      avatar: "/placeholder.svg?height=60&width=60",
-      bio: "Consultora certificada con 10 años de experiencia ayudando a madres en su proceso de lactancia.",
-    },
-    isOnline: false,
-    isFree: false,
-    isPopular: true,
-    tags: ["lactancia", "primerizas", "bebés", "alimentación"],
-    requirements: ["Estar embarazada o tener un bebé menor de 6 meses"],
-    includes: ["Material didáctico", "Certificado de participación", "Grupo de WhatsApp de apoyo"],
-    rating: 4.9,
-    reviewCount: 47,
-  },
-  {
-    id: 2,
-    title: "Yoga Prenatal y Relajación",
-    description:
-      "Sesión de yoga especialmente diseñada para embarazadas. Fortalece tu cuerpo, relaja tu mente y conecta con tu bebé en un ambiente tranquilo y seguro.",
-    fullDescription:
-      "Clase de yoga prenatal adaptada para cada trimestre del embarazo. Trabajaremos posturas seguras que ayudan a aliviar molestias comunes del embarazo, fortalecen el suelo pélvico y preparan el cuerpo para el parto. Incluye técnicas de respiración y relajación que podrás usar durante el trabajo de parto.",
-    category: "Bienestar",
-    type: "Clase",
-    date: "2024-01-22",
-    time: "18:00",
-    duration: "1.5 horas",
-    location: "Estudio Zen Mamá",
-    address: "Avenida de la Paz, 12, Barcelona",
-    price: 20,
-    maxAttendees: 12,
-    currentAttendees: 9,
-    image: "/placeholder.svg?height=200&width=300",
-    organizer: {
-      name: "Ana Rodríguez",
-      title: "Instructora de Yoga Prenatal",
-      avatar: "/placeholder.svg?height=60&width=60",
-      bio: "Instructora certificada especializada en yoga prenatal y postnatal con más de 8 años de experiencia.",
-    },
-    isOnline: false,
-    isFree: false,
-    isPopular: false,
-    tags: ["yoga", "embarazo", "relajación", "bienestar"],
-    requirements: ["Estar embarazada", "Traer esterilla (o se puede alquilar por 3€)"],
-    includes: ["Esterilla si es necesario", "Agua e infusión", "Guía de ejercicios para casa"],
-    rating: 4.8,
-    reviewCount: 32,
-  },
-  {
-    id: 3,
-    title: "Charla Online: Sueño Infantil 0-2 años",
-    description:
-      "Webinar gratuito sobre patrones de sueño infantil, cómo establecer rutinas saludables y resolver problemas comunes de sueño en bebés y niños pequeños.",
-    fullDescription:
-      "Charla online gratuita impartida por una especialista en sueño infantil. Aprenderás sobre los patrones normales de sueño según la edad, cómo crear un ambiente propicio para el descanso, técnicas suaves para ayudar a dormir y cómo manejar despertares nocturnos. Incluye sesión de preguntas y respuestas en vivo.",
-    category: "Educación",
-    type: "Webinar",
-    date: "2024-01-25",
-    time: "20:00",
-    duration: "1 hora",
-    location: "Online - Zoom",
-    address: "Desde casa",
-    price: 0,
-    maxAttendees: 100,
-    currentAttendees: 67,
-    image: "/placeholder.svg?height=200&width=300",
-    organizer: {
-      name: "Dra. María González",
-      title: "Especialista en Sueño Infantil",
-      avatar: "/placeholder.svg?height=60&width=60",
-      bio: "Pediatra especializada en trastornos del sueño infantil con consulta en Madrid y Barcelona.",
-    },
-    isOnline: true,
-    isFree: true,
-    isPopular: true,
-    tags: ["sueño", "bebés", "rutinas", "online"],
-    requirements: ["Conexión a internet", "Aplicación Zoom"],
-    includes: ["Grabación del webinar", "PDF con consejos", "Lista de recursos recomendados"],
-    rating: 4.7,
-    reviewCount: 89,
-  },
-]
+const events = []
 
 const categories = [
-  { name: "Todos", icon: <Calendar className="h-4 w-4" />, count: 24 },
-  { name: "Lactancia", icon: <Baby className="h-4 w-4" />, count: 6 },
-  { name: "Bienestar", icon: <Dumbbell className="h-4 w-4" />, count: 8 },
-  { name: "Educación", icon: <BookOpen className="h-4 w-4" />, count: 5 },
-  { name: "Alimentación", icon: <ChefHat className="h-4 w-4" />, count: 4 },
-  { name: "Apoyo Emocional", icon: <Heart className="h-4 w-4" />, count: 3 },
-  { name: "Creatividad", icon: <Palette className="h-4 w-4" />, count: 2 },
+  { name: "Todos", icon: <Calendar className="h-4 w-4" />, count: 0 },
+  { name: "Lactancia", icon: <Baby className="h-4 w-4" />, count: 0 },
+  { name: "Bienestar", icon: <Dumbbell className="h-4 w-4" />, count: 0 },
+  { name: "Educación", icon: <BookOpen className="h-4 w-4" />, count: 0 },
+  { name: "Alimentación", icon: <ChefHat className="h-4 w-4" />, count: 0 },
+  { name: "Apoyo Emocional", icon: <Heart className="h-4 w-4" />, count: 0 },
+  { name: "Creatividad", icon: <Palette className="h-4 w-4" />, count: 0 },
 ]
 
 const eventTypes = ["Todos", "Taller", "Charla", "Webinar", "Clase", "Grupo de Apoyo"]
@@ -464,8 +364,8 @@ export default function EventsPage() {
               <Card>
                 <CardContent className="pt-6 text-center py-12">
                   <CalendarDays className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">No se encontraron eventos que coincidan con tu búsqueda.</p>
-                  <p className="text-gray-400 text-sm mt-2">Prueba ajustando los filtros o busca otros términos.</p>
+                  <p className="text-gray-500 text-lg">Aún no hay eventos programados.</p>
+                  <p className="text-gray-400 text-sm mt-2">Los eventos aparecerán aquí una vez que se publiquen.</p>
                 </CardContent>
               </Card>
             )}
