@@ -36,34 +36,37 @@ import {
   BookOpen,
   Smile,
 } from "lucide-react"
+import type { ForumPost, Category, SortOption } from "@/types"
 
-const forumPosts = []
+// Empty array with explicit type
+const forumPosts: ForumPost[] = []
 
-
-const categories = [
-  { name: "Todas", icon: <MessageCircle className="h-4 w-4" />, count: 156 },
-  { name: "Crianza", icon: <Baby className="h-4 w-4" />, count: 45 },
-  { name: "Salud", icon: <Stethoscope className="h-4 w-4" />, count: 32 },
-  { name: "Alimentación", icon: <Coffee className="h-4 w-4" />, count: 28 },
-  { name: "Lactancia", icon: <Heart className="h-4 w-4" />, count: 23 },
-  { name: "Ocio", icon: <Smile className="h-4 w-4" />, count: 19 },
-  { name: "Educación", icon: <BookOpen className="h-4 w-4" />, count: 15 },
-  { name: "Anuncios", icon: <Pin className="h-4 w-4" />, count: 8 },
+const categories: Category[] = [
+  { name: "Todas", icon: <MessageCircle className="h-4 w-4" />, count: 0 },
+  { name: "Crianza", icon: <Baby className="h-4 w-4" />, count: 0 },
+  { name: "Salud", icon: <Stethoscope className="h-4 w-4" />, count: 0 },
+  { name: "Alimentación", icon: <Coffee className="h-4 w-4" />, count: 0 },
+  { name: "Lactancia", icon: <Heart className="h-4 w-4" />, count: 0 },
+  { name: "Ocio", icon: <Smile className="h-4 w-4" />, count: 0 },
+  { name: "Educación", icon: <BookOpen className="h-4 w-4" />, count: 0 },
+  { name: "Anuncios", icon: <Pin className="h-4 w-4" />, count: 0 },
 ]
 
-const sortOptions = [
+const sortOptions: SortOption[] = [
   { value: "recent", label: "Más recientes" },
   { value: "popular", label: "Más populares" },
   { value: "replies", label: "Más comentarios" },
   { value: "likes", label: "Más likes" },
 ]
 
+const onlineUsers: string[] = []
+
 export default function ForumPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Todas")
   const [sortBy, setSortBy] = useState("recent")
   const [showNewPostModal, setShowNewPostModal] = useState(false)
-  const [selectedPost, setSelectedPost] = useState<(typeof forumPosts)[0] | null>(null)
+  const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null)
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
@@ -199,7 +202,7 @@ export default function ForumPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {[].map((user, index) => (
+                  {onlineUsers.map((user, index) => (
                     <div key={index} className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <Avatar className="h-6 w-6">
@@ -209,6 +212,7 @@ export default function ForumPage() {
                       <span className="text-sm text-gray-600">{user}</span>
                     </div>
                   ))}
+                  {onlineUsers.length === 0 && <p className="text-sm text-gray-500">No hay usuarios conectados</p>}
                 </div>
               </CardContent>
             </Card>
@@ -469,7 +473,7 @@ function NewPostForm({ onClose }: { onClose: () => void }) {
 }
 
 // Post Detail Component
-function PostDetail({ post, onClose }: { post: (typeof forumPosts)[0]; onClose: () => void }) {
+function PostDetail({ post, onClose }: { post: ForumPost; onClose: () => void }) {
   const { user } = useAuth()
   const [newReply, setNewReply] = useState("")
   const [showReplyForm, setShowReplyForm] = useState(false)
