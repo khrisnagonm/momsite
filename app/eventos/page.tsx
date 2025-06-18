@@ -281,17 +281,17 @@ export default function EventosPage() {
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />📅 {formatDate(event.date)}
+                      <Calendar className="h-4 w-4 mr-2" />{formatDate(event.date)}
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="h-4 w-4 mr-2" />⏰ {formatTime(event.time)}
+                      <Clock className="h-4 w-4 mr-2" />{formatTime(event.time)}
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="h-4 w-4 mr-2" />
-                      {event.isOnline ? "💻 Online" : `📍 ${event.location}`}
+                      {event.isOnline ? "💻 Online" : `${event.location}`}
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-2" />👥{" "}
+                      <Users className="h-4 w-4 mr-2" />{" "}
                       {event.maxAttendees
                         ? `${event.currentAttendees}/${event.maxAttendees} asistentes`
                         : `${event.currentAttendees} asistentes`}
@@ -306,7 +306,7 @@ export default function EventosPage() {
 
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold text-pink-600">
-                      💰 {formatPrice(event.price, event.isFree)}
+                      {formatPrice(event.price, event.isFree)}
                     </span>
                     <Button size="sm" className="bg-pink-500 hover:bg-pink-600">
                       Ver Detalles
