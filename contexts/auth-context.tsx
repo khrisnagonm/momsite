@@ -9,6 +9,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  updateProfile,
 } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 
@@ -28,7 +29,7 @@ interface AuthContextType {
   error: string | null
   isAdmin: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, displayName?: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -68,9 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, displayName?: string) => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+
+      // Si se proporcionó un displayName, actualizarlo en el perfil
+      if (displayName && userCredential.user) {
+        await updateProfile(userCredential.user, {
+          displayName: displayName,
+        })
+      }
     } catch (err) {
       console.error("Sign up error:", err)
       setError("Error al registrarse")
