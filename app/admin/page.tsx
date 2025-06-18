@@ -63,19 +63,29 @@ export default function AdminPage() {
       let recentUsers: any[] = []
 
       try {
-        // Obtener estadísticas de eventos
+        // Obtener estadísticas de eventos (solo activos)
         console.log("Fetching events...")
         const eventsQuery = query(collection(db, "events"))
         const eventsSnapshot = await getDocs(eventsQuery)
-        totalEvents = eventsSnapshot.size
+        // Filtrar eventos no eliminados (status !== "deleted")
+        const activeEvents = eventsSnapshot.docs.filter((doc) => doc.data().status !== "deleted")
+        totalEvents = activeEvents.length
 
-        // Obtener eventos recientes
-        const recentEventsQuery = query(collection(db, "events"), orderBy("createdAt", "desc"), limit(5))
+        // Obtener eventos recientes (solo activos)
+        const recentEventsQuery = query(
+          collection(db, "events"),
+          orderBy("createdAt", "desc"),
+          limit(10), // Obtenemos más para filtrar después
+        )
         const recentEventsSnapshot = await getDocs(recentEventsQuery)
-        recentEvents = recentEventsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
+        // Filtrar eventos no eliminados y tomar solo 5
+        recentEvents = recentEventsSnapshot.docs
+          .filter((doc) => doc.data().status !== "deleted")
+          .slice(0, 5)
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
         console.log("Events loaded:", totalEvents)
       } catch (eventsError) {
         console.warn("Error loading events:", eventsError)
