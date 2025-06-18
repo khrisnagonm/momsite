@@ -36,7 +36,7 @@ export default function AboutPage() {
             </div>
             <div className="relative">
               <Image
-                src="/placeholder.svg?height=400&width=500"
+                src="/images/nosotras.png"
                 alt="Madres conectándose"
                 width={500}
                 height={400}
@@ -155,11 +155,11 @@ export default function AboutPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Nuestro Equipo</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Madres, profesionales y personas apasionadas por crear un mundo mejor para las familias
+              Madre, profesional y persona apasionada por crear un mundo mejor para las familias
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-4xl mx-auto">
             <Card className="border-0 shadow-lg text-center">
               <CardContent className="p-8">
                 <div className="w-24 h-24 bg-pink-200 rounded-full flex items-center justify-center mx-auto mb-4">

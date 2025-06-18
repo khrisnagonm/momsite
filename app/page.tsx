@@ -36,8 +36,8 @@ export default function HomePage() {
             </div>
             <div className="relative">
               <Image
-                src="/images/hero-mother-child.png"
-                alt="Madre feliz con su hijo"
+                src="/images/home.png"
+                alt="Madres felices con sus hijos"
                 width={600}
                 height={500}
                 className="rounded-2xl shadow-2xl object-cover"

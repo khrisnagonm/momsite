@@ -1,390 +1,445 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Clock, MapPin, Users, Star, Search, Filter, Heart, Sparkles } from "lucide-react"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
+import { ArrowLeft, Plus, Search, Filter, Edit, Trash2, Eye, Calendar, Users, MapPin, Star } from "lucide-react"
+import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import Image from "next/image"
 
 interface Event {
   id: string
   title: string
-  description: string
   category: string
   type: string
   date: string
   time: string
   location: string
   price: number
-  maxAttendees: number | null
+  maxAttendees: number
   currentAttendees: number
+  status: string
   rating: number
   reviewCount: number
-  isOnline: boolean
-  isFree: boolean
-  isPopular: boolean
-  image?: string
-  tags: string[]
+  createdAt: any
+  createdBy: string
 }
 
-export default function EventosPage() {
-  const [events, setEvents] = useState<Event[]>([])
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
+export default function AdminEventosPage() {
+  const { user, isAdmin, loading } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const [selectedType, setSelectedType] = useState("all")
-
-  const categories = [
-    "Lactancia",
-    "Bienestar",
-    "Educación",
-    "Alimentación",
-    "Apoyo Emocional",
-    "Creatividad",
-    "Salud",
-    "Desarrollo Infantil",
-  ]
-
-  const eventTypes = ["Taller", "Charla", "Webinar", "Clase", "Grupo de Apoyo", "Conferencia"]
+  const [events, setEvents] = useState<Event[]>([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null)
+  const [openDialogId, setOpenDialogId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadEvents()
-  }, [])
-
-  useEffect(() => {
-    filterEvents()
-  }, [events, searchTerm, selectedCategory, selectedType])
+    if (user && isAdmin && db) {
+      loadEvents()
+    }
+  }, [user, isAdmin])
 
   const loadEvents = async () => {
     if (!db) return
 
     try {
-      setLoading(true)
-      // Solo obtener eventos activos
-      const eventsQuery = query(collection(db, "events"), where("status", "==", "active"))
-      const querySnapshot = await getDocs(eventsQuery)
+      // Consulta simplificada sin orderBy para evitar índice compuesto
+      const eventsQuery = query(collection(db, "events"), where("status", "!=", "deleted"))
 
-      const eventsData = querySnapshot.docs.map((doc) => ({
+      const snapshot = await getDocs(eventsQuery)
+      const eventsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Event[]
 
-      // Ordenar por fecha en el cliente
-      const sortedEvents = eventsData.sort((a, b) => {
-        const dateA = new Date(`${a.date} ${a.time}`)
-        const dateB = new Date(`${b.date} ${b.time}`)
-        return dateA.getTime() - dateB.getTime()
+      // Ordenar en el cliente por fecha de creación (más recientes primero)
+      eventsData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0)
+        const dateB = b.createdAt?.toDate?.() || new Date(0)
+        return dateB.getTime() - dateA.getTime()
       })
 
-      setEvents(sortedEvents)
+      setEvents(eventsData)
+      setLoadingEvents(false)
     } catch (error) {
       console.error("Error loading events:", error)
-    } finally {
-      setLoading(false)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los eventos.",
+        variant: "destructive",
+      })
+      setLoadingEvents(false)
     }
   }
 
-  const filterEvents = () => {
-    let filtered = events
-
-    // Filtrar por búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (event) =>
-          event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.location.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!db || !user) {
+      toast({
+        title: "Error",
+        description: "No se pudo conectar a la base de datos.",
+        variant: "destructive",
+      })
+      return
     }
 
-    // Filtrar por categoría
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((event) => event.category === selectedCategory)
-    }
+    try {
+      setDeletingEventId(eventId)
+      console.log("Eliminando evento:", eventId) // Debug
 
-    // Filtrar por tipo
-    if (selectedType !== "all") {
-      filtered = filtered.filter((event) => event.type === selectedType)
-    }
+      // Eliminación lógica: cambiar estado a "deleted"
+      const eventRef = doc(db, "events", eventId)
+      await updateDoc(eventRef, {
+        status: "deleted",
+        deletedAt: new Date().toISOString(),
+        deletedBy: user.uid,
+      })
 
-    setFilteredEvents(filtered)
+      console.log("Evento eliminado exitosamente") // Debug
+
+      // Actualizar la lista local removiendo el evento eliminado
+      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId))
+
+      toast({
+        title: "Evento eliminado",
+        description: "El evento se ha eliminado correctamente.",
+      })
+    } catch (error) {
+      console.error("Error deleting event:", error)
+      toast({
+        title: "Error",
+        description: `No se pudo eliminar el evento: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingEventId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || !isAdmin) {
+    router.push("/")
+    return null
+  }
+
+  if (loadingEvents) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando eventos...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const filteredEvents = events.filter(
+    (event) =>
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-100 text-green-700">Activo</Badge>
+      case "draft":
+        return <Badge className="bg-yellow-100 text-yellow-700">Borrador</Badge>
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-700">Cancelado</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "Sin fecha"
     const date = new Date(dateString)
-    return date.toLocaleDateString("es-CL", {
+    return date.toLocaleDateString("es-ES", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     })
   }
 
-  const formatTime = (timeString: string) => {
-    return timeString.slice(0, 5) // HH:MM
-  }
-
-  const formatPrice = (price: number, isFree: boolean) => {
-    if (isFree || price === 0) return "Gratis"
-    return `$${price.toLocaleString("es-CL")} CLP`
-  }
-
-  const getCategoryEmoji = (category: string) => {
-    const emojiMap: { [key: string]: string } = {
-      Lactancia: "🤱",
-      Bienestar: "🧘‍♀️",
-      Educación: "📚",
-      Alimentación: "🍎",
-      "Apoyo Emocional": "💝",
-      Creatividad: "🎨",
-      Salud: "🏥",
-      "Desarrollo Infantil": "👶",
-    }
-    return emojiMap[category] || "✨"
-  }
-
-  const getTypeEmoji = (type: string) => {
-    const emojiMap: { [key: string]: string } = {
-      Taller: "🛠️",
-      Charla: "💬",
-      Webinar: "💻",
-      Clase: "📖",
-      "Grupo de Apoyo": "🤗",
-      Conferencia: "🎤",
-    }
-    return emojiMap[type] || "📅"
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50">
-        <div className="container px-4 py-8">
-          <div className="text-center">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-pink-200 border-t-pink-500 mx-auto"></div>
-              <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-pink-400 animate-pulse" />
-            </div>
-            <p className="mt-6 text-gray-600 font-medium">✨ Cargando eventos mágicos...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const totalAttendees = events.reduce((sum, event) => sum + (event.currentAttendees || 0), 0)
+  const averageRating =
+    events.length > 0 ? events.reduce((sum, event) => sum + (event.rating || 0), 0) / events.length : 0
+  const activeEvents = events.filter((event) => event.status === "active").length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="container px-4 py-8">
-        {/* Header Mágico */}
-        <div className="mb-12 text-center">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <Sparkles className="h-8 w-8 text-pink-500 animate-pulse" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Eventos y Talleres
-            </h1>
-            <Heart className="h-8 w-8 text-pink-500 animate-pulse" />
+        {/* Header */}
+        <div className="mb-6">
+          <Link href="/admin" className="inline-flex items-center text-pink-600 hover:text-pink-700 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al Panel
+          </Link>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Gestión de Eventos</h1>
+              <p className="text-gray-600 mt-1">Administra todos los eventos y talleres</p>
+            </div>
+            <Link href="/admin/eventos/nuevo">
+              <Button className="bg-pink-500 hover:bg-pink-600">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Evento
+              </Button>
+            </Link>
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            ✨ Descubre experiencias mágicas diseñadas especialmente para madres y familias 💖
-          </p>
         </div>
 
-        {/* Filtros Hermosos */}
-        <div className="mb-10">
-          <Card className="backdrop-blur-sm bg-white/70 border-pink-200 shadow-lg">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
             <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-400 h-5 w-5" />
-                    <Input
-                      placeholder="🔍 Buscar eventos mágicos..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-12 h-12 border-pink-200 focus:border-pink-400 focus:ring-pink-400 bg-white/80"
-                    />
-                  </div>
+              <div className="flex items-center">
+                <Calendar className="h-8 w-8 text-blue-500" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Eventos</p>
+                  <p className="text-2xl font-bold text-gray-900">{events.length}</p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-full sm:w-56 h-12 border-pink-200 focus:border-pink-400 bg-white/80">
-                      <Filter className="h-4 w-4 mr-2 text-pink-400" />
-                      <SelectValue placeholder="✨ Categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">🌟 Todas las categorías</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {getCategoryEmoji(category)} {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              </div>
+            </CardContent>
+          </Card>
 
-                  <Select value={selectedType} onValueChange={setSelectedType}>
-                    <SelectTrigger className="w-full sm:w-56 h-12 border-pink-200 focus:border-pink-400 bg-white/80">
-                      <SelectValue placeholder="📅 Tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">🎯 Todos los tipos</SelectItem>
-                      {eventTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {getTypeEmoji(type)} {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-green-500" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Asistentes</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalAttendees}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Star className="h-8 w-8 text-yellow-500" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Rating Promedio</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <MapPin className="h-8 w-8 text-purple-500" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Eventos Activos</p>
+                  <p className="text-2xl font-bold text-gray-900">{activeEvents}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Eventos */}
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-16">
-            <Card className="max-w-md mx-auto backdrop-blur-sm bg-white/70 border-pink-200 shadow-lg">
-              <CardContent className="p-8">
-                <div className="mb-6">
-                  <Calendar className="mx-auto h-16 w-16 text-pink-300 mb-4" />
-                  <Sparkles className="mx-auto h-8 w-8 text-purple-400 animate-pulse" />
+        {/* Filters and Search */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Buscar eventos por título, categoría o ubicación..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-3">✨ No hay eventos disponibles</h3>
-                <p className="text-gray-600">
-                  {searchTerm || selectedCategory !== "all" || selectedType !== "all"
-                    ? "🔍 No se encontraron eventos que coincidan con los filtros seleccionados."
-                    : "🌟 Aún no hay eventos programados. ¡Vuelve pronto para ver las novedades mágicas!"}
+              </div>
+              <Button variant="outline">
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Events Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Eventos ({filteredEvents.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredEvents.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg mb-2">No hay eventos</p>
+                <p className="text-gray-400 mb-4">
+                  {searchTerm
+                    ? "No se encontraron eventos con ese término de búsqueda"
+                    : "Comienza creando tu primer evento"}
                 </p>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {filteredEvents.map((event) => (
-              <Card
-                key={event.id}
-                className="group overflow-hidden hover:shadow-2xl transition-all duration-300 backdrop-blur-sm bg-white/80 border-pink-200 hover:border-pink-300 hover:scale-105"
-              >
-                {/* Imagen del evento */}
-                <div className="relative h-52 bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
-                  {event.image ? (
-                    <Image
-                      src={event.image || "/placeholder.svg"}
-                      alt={event.title}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <Calendar className="h-12 w-12 text-pink-300 mx-auto mb-2" />
-                        <Sparkles className="h-6 w-6 text-purple-400 mx-auto animate-pulse" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Badges flotantes */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-2">
-                    {event.isPopular && (
-                      <Badge className="bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg">
-                        ⭐ Popular
-                      </Badge>
-                    )}
-                    {event.isFree && (
-                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
-                        🎁 Gratis
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <CardContent className="p-6">
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge
-                        variant="secondary"
-                        className="bg-gradient-to-r from-pink-100 to-purple-100 text-pink-700 border-pink-200"
-                      >
-                        {getCategoryEmoji(event.category)} {event.category}
-                      </Badge>
-                      <Badge variant="outline" className="border-purple-200 text-purple-600">
-                        {getTypeEmoji(event.type)} {event.type}
-                      </Badge>
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-pink-600 transition-colors">
-                      {event.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">{event.description}</p>
-                  </div>
-
-                  <div className="space-y-3 mb-5">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-3 text-pink-400" />
-                      <span className="font-medium">📅 {formatDate(event.date)}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="h-4 w-4 mr-3 text-purple-400" />
-                      <span className="font-medium">⏰ {formatTime(event.time)}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-3 text-indigo-400" />
-                      <span className="font-medium">{event.isOnline ? "💻 Online" : `📍 ${event.location}`}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-3 text-green-400" />
-                      <span className="font-medium">
-                        👥{" "}
-                        {event.maxAttendees
-                          ? `${event.currentAttendees}/${event.maxAttendees} asistentes`
-                          : `${event.currentAttendees} asistentes`}
-                      </span>
-                    </div>
-                    {event.rating > 0 && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Star className="h-4 w-4 mr-3 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">
-                          ⭐ {event.rating.toFixed(1)} ({event.reviewCount} reseñas)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                      💰 {formatPrice(event.price, event.isFree)}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                    >
-                      ✨ Ver Detalles
-                    </Button>
-                  </div>
-
-                  {/* Tags */}
-                  {event.tags && event.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {event.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs border-pink-200 text-pink-600 bg-pink-50">
-                          🏷️ {tag}
-                        </Badge>
-                      ))}
-                      {event.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs border-purple-200 text-purple-600 bg-purple-50">
-                          ➕ {event.tags.length - 3} más
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                <Link href="/admin/eventos/nuevo">
+                  <Button className="bg-pink-500 hover:bg-pink-600">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Primer Evento
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Evento</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Ubicación</TableHead>
+                      <TableHead>Asistentes</TableHead>
+                      <TableHead>Precio</TableHead>
+                      <TableHead>Rating</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEvents.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{event.title}</p>
+                            <p className="text-sm text-gray-500">{event.type}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{event.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{formatDate(event.date)}</p>
+                            <p className="text-sm text-gray-500">{event.time}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{event.location}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 mr-1 text-gray-400" />
+                            {event.currentAttendees || 0}
+                            {event.maxAttendees ? `/${event.maxAttendees}` : " (sin límite)"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {event.price === 0 ? (
+                            <Badge className="bg-green-100 text-green-700">Gratis</Badge>
+                          ) : (
+                            `$${event.price} CLP`
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 mr-1 text-yellow-500" />
+                            {event.rating || 0} ({event.reviewCount || 0})
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(event.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm" title="Ver evento">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Link href={`/admin/eventos/editar/${event.id}`}>
+                              <Button variant="outline" size="sm" title="Editar evento">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <AlertDialog
+                              open={openDialogId === event.id}
+                              onOpenChange={(open) => !open && setOpenDialogId(null)}
+                            >
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  title="Eliminar evento"
+                                  disabled={deletingEventId === event.id}
+                                  onClick={() => setOpenDialogId(event.id)}
+                                >
+                                  {deletingEventId === event.id ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción eliminará el evento "{event.title}" de la vista pública y del panel de
+                                    administración. El evento no se eliminará permanentemente de la base de datos.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel disabled={deletingEventId === event.id}>
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={async () => {
+                                      await handleDeleteEvent(event.id)
+                                      setOpenDialogId(null)
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700"
+                                    disabled={deletingEventId === event.id}
+                                  >
+                                    {deletingEventId === event.id ? "Eliminando..." : "Eliminar"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
