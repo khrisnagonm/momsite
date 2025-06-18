@@ -145,7 +145,7 @@ export default function SettingsPage() {
     )
   }
 
-  const formatDate = (timestamp: string | null) => {
+  const formatDate = (timestamp: string | null | undefined) => {
     if (!timestamp) return "No disponible"
     return new Date(timestamp).toLocaleDateString("es-ES", {
       year: "numeric",
