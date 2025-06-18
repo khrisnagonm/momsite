@@ -33,11 +33,11 @@ interface AuthContextType {
   logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | null>(null)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [initialized, setInitialized] = useState(false)
 
   // Lista de emails de administradores
   const adminEmails = [
@@ -58,10 +59,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = user?.email ? adminEmails.includes(user.email) : false
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+    } catch (err) {
+      console.error("Sign in error:", err)
+      setError("Error al iniciar sesión")
+    }
+  }
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password)
+    } catch (err) {
+      console.error("Sign up error:", err)
+      setError("Error al registrarse")
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider()
+    try {
+      await signInWithPopup(auth, provider)
+    } catch (err) {
+      console.error("Sign in with Google error:", err)
+      setError("Error al iniciar sesión con Google")
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await signOut(auth)
+    } catch (err) {
+      console.error("Logout error:", err)
+      setError("Error al cerrar sesión")
+    }
+  }
+
   useEffect(() => {
     if (!auth) {
       setError("Firebase no está configurado correctamente")
       setLoading(false)
+      setInitialized(true)
       return
     }
 
@@ -91,11 +130,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           setLoading(false)
           setError(null)
+          setInitialized(true)
         },
         (error) => {
           console.error("Auth state change error:", error)
           setError("Error de autenticación")
           setLoading(false)
+          setInitialized(true)
         },
       )
 
@@ -104,85 +145,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Firebase auth error:", err)
       setError("Error de configuración de Firebase")
       setLoading(false)
+      setInitialized(true)
     }
   }, [])
 
-  const signIn = async (email: string, password: string) => {
-    if (!auth) {
-      throw new Error("Firebase no está configurado")
-    }
-
-    try {
-      console.log("Attempting to sign in with:", email)
-      await signInWithEmailAndPassword(auth, email, password)
-      console.log("Sign in successful")
-    } catch (err: any) {
-      console.error("Sign in error:", err)
-      if (err.code === "auth/user-not-found") {
-        throw new Error("Usuario no encontrado")
-      } else if (err.code === "auth/wrong-password") {
-        throw new Error("Contraseña incorrecta")
-      } else if (err.code === "auth/invalid-email") {
-        throw new Error("Email inválido")
-      } else {
-        throw new Error("Error al iniciar sesión")
-      }
-    }
-  }
-
-  const signUp = async (email: string, password: string) => {
-    if (!auth) {
-      throw new Error("Firebase no está configurado")
-    }
-
-    try {
-      await createUserWithEmailAndPassword(auth, email, password)
-    } catch (err: any) {
-      console.error("Sign up error:", err)
-      if (err.code === "auth/email-already-in-use") {
-        throw new Error("Este email ya está en uso")
-      } else if (err.code === "auth/weak-password") {
-        throw new Error("La contraseña es muy débil")
-      } else if (err.code === "auth/invalid-email") {
-        throw new Error("Email inválido")
-      } else {
-        throw new Error("Error al crear la cuenta")
-      }
-    }
-  }
-
-  const signInWithGoogle = async () => {
-    if (!auth) {
-      throw new Error("Firebase no está configurado")
-    }
-
-    try {
-      const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
-    } catch (err: any) {
-      console.error("Google sign in error:", err)
-      if (err.code === "auth/popup-closed-by-user") {
-        throw new Error("Inicio de sesión cancelado")
-      } else {
-        throw new Error("Error al iniciar sesión con Google")
-      }
-    }
-  }
-
-  const logout = async () => {
-    if (!auth) {
-      throw new Error("Firebase no está configurado")
-    }
-
-    try {
-      console.log("Logging out...")
-      await signOut(auth)
-      setUserProfile(null)
-      console.log("Logout successful")
-    } catch (err) {
-      console.error("Logout error:", err)
-      throw new Error("Error al cerrar sesión")
-    }
+  // Don't render children until context is initialized
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Inicializando...</p>
+        </div>
+      </div>
+    )
   }
 
   const value = {

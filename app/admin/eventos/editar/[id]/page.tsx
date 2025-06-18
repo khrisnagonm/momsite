@@ -13,11 +13,14 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { ArrowLeft, Plus, X, Save, Loader2 } from "lucide-react"
+import { uploadEventImage, deleteEventImage, checkStorageAvailability } from "@/lib/firebase-storage"
+import { ArrowLeft, Plus, X, Save, Loader2, Upload, ImageIcon, AlertTriangle, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 interface Event {
   id: string
@@ -39,6 +42,7 @@ interface Event {
   isPopular: boolean
   status: string
   tags: string[]
+  image: string
   organizer: {
     name: string
     title: string
@@ -48,6 +52,7 @@ interface Event {
   includes: string[]
   createdAt: any
   createdBy: string
+  hasLimitedCapacity: boolean
 }
 
 export default function EditarEventoPage({ params }: { params: { id: string } }) {
@@ -56,10 +61,16 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [loadingEvent, setLoadingEvent] = useState(true)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [storageStatus, setStorageStatus] = useState<{ available: boolean; error?: string } | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState("")
   const [newRequirement, setNewRequirement] = useState("")
   const [newInclude, setNewInclude] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>("")
+  const [originalImageUrl, setOriginalImageUrl] = useState<string>("")
+  const [imageError, setImageError] = useState(false)
 
   const [formData, setFormData] = useState<Partial<Event>>({
     title: "",
@@ -79,6 +90,7 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
     isFree: false,
     isPopular: false,
     status: "active",
+    image: "",
     organizer: {
       name: "",
       title: "",
@@ -86,6 +98,7 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
     },
     requirements: [],
     includes: [],
+    hasLimitedCapacity: false,
   })
 
   const categories = [
@@ -113,6 +126,9 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
       return
     }
 
+    // Verificar Firebase Storage
+    checkStorageAvailability().then(setStorageStatus)
+
     loadEvent()
   }, [user, isAdmin, params.id])
 
@@ -125,8 +141,16 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
 
       if (eventDoc.exists()) {
         const eventData = { id: eventDoc.id, ...eventDoc.data() } as Event
-        setFormData(eventData)
+        setFormData({
+          ...eventData,
+          hasLimitedCapacity: eventData.maxAttendees != null && eventData.maxAttendees > 0,
+        })
         setTags(eventData.tags || [])
+        if (eventData.image) {
+          setImagePreview(eventData.image)
+          setOriginalImageUrl(eventData.image)
+          setImageError(false)
+        }
       } else {
         toast({
           title: "Error",
@@ -159,6 +183,66 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
       }))
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }))
+    }
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar tipo de archivo
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "Por favor selecciona un archivo de imagen válido.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "La imagen debe ser menor a 5MB.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setImageFile(file)
+      setImageError(false)
+
+      // Crear preview usando FileReader
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const result = e.target?.result as string
+        if (result) {
+          setImagePreview(result)
+        }
+      }
+      reader.onerror = () => {
+        console.error("Error reading file")
+        setImageError(true)
+        toast({
+          title: "Error",
+          description: "No se pudo leer el archivo de imagen.",
+          variant: "destructive",
+        })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview("")
+    setImageError(false)
+    setFormData((prev) => ({ ...prev, image: "" }))
+
+    // Limpiar el input file
+    const fileInput = document.getElementById("image-upload") as HTMLInputElement
+    if (fileInput) {
+      fileInput.value = ""
     }
   }
 
@@ -195,8 +279,71 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
 
     setLoading(true)
     try {
+      let imageUrl = formData.image || ""
+
+      // Subir nueva imagen si hay una seleccionada
+      if (imageFile) {
+        if (!storageStatus?.available) {
+          toast({
+            title: "❌ Firebase Storage no disponible",
+            description: "Necesitas habilitar Firebase Storage para subir imágenes.",
+            variant: "destructive",
+          })
+          setLoading(false)
+          return
+        }
+
+        setUploadingImage(true)
+        try {
+          console.log("🚀 Iniciando proceso de subida de imagen...")
+
+          // Subir nueva imagen con timeout
+          const uploadPromise = uploadEventImage(imageFile)
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("La subida tardó demasiado tiempo")), 45000)
+          })
+
+          imageUrl = (await Promise.race([uploadPromise, timeoutPromise])) as string
+
+          // Eliminar imagen anterior si existe y es diferente
+          if (originalImageUrl && originalImageUrl !== imageUrl) {
+            console.log("🗑️ Eliminando imagen anterior...")
+            await deleteEventImage(originalImageUrl)
+          }
+
+          toast({
+            title: "✅ Imagen actualizada",
+            description: "La imagen se ha actualizado correctamente.",
+          })
+        } catch (error: any) {
+          console.error("❌ Error completo:", error)
+
+          let errorMessage = "Error desconocido al subir la imagen"
+
+          if (error.message?.includes("Firebase Storage no está habilitado")) {
+            errorMessage = "Firebase Storage no está habilitado. Ve a Firebase Console → Storage → Get Started"
+          } else if (error.message?.includes("Timeout") || error.message?.includes("tardó demasiado")) {
+            errorMessage = "La subida tardó demasiado tiempo. Verifica tu conexión e inténtalo de nuevo."
+          } else if (error.message) {
+            errorMessage = error.message
+          }
+
+          toast({
+            title: "❌ Error al subir imagen",
+            description: errorMessage,
+            variant: "destructive",
+          })
+
+          // Mantener imagen anterior
+          imageUrl = formData.image || ""
+        } finally {
+          setUploadingImage(false)
+        }
+      }
+
       const updateData = {
         ...formData,
+        image: imageUrl,
         tags,
         updatedAt: new Date(),
         updatedBy: user.uid,
@@ -225,6 +372,27 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
     } finally {
       setLoading(false)
     }
+  }
+
+  // Limpiar estados de carga si hay un error
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (uploadingImage) {
+        console.warn("⚠️ Limpiando estado de carga por timeout")
+        setUploadingImage(false)
+      }
+    }, 60000) // 1 minuto
+
+    return () => clearTimeout(timer)
+  }, [uploadingImage])
+
+  const handleImageError = () => {
+    console.error("Error loading image:", imagePreview)
+    setImageError(true)
+  }
+
+  const handleImageLoad = () => {
+    setImageError(false)
   }
 
   if (loadingEvent) {
@@ -256,9 +424,152 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
           <CardHeader>
             <CardTitle className="text-2xl">Editar Evento</CardTitle>
             <p className="text-gray-600">Modifica la información del evento</p>
+
+            {storageStatus && !storageStatus.available && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">
+                  <div className="space-y-2">
+                    <div>
+                      <strong>🚨 Firebase Storage no está disponible</strong>
+                    </div>
+                    <div className="text-sm">
+                      <strong>Error:</strong> {storageStatus.error}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Solución:</strong>
+                      <ol className="list-decimal list-inside mt-1 space-y-1">
+                        <li>
+                          Ve a{" "}
+                          <a
+                            href="https://console.firebase.google.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-red-700 underline inline-flex items-center"
+                          >
+                            Firebase Console <ExternalLink className="h-3 w-3 ml-1" />
+                          </a>
+                        </li>
+                        <li>
+                          Selecciona tu proyecto: <strong>momsite-cl</strong>
+                        </li>
+                        <li>
+                          Ve a <strong>Storage</strong> en el menú lateral
+                        </li>
+                        <li>
+                          Haz clic en <strong>"Get Started"</strong>
+                        </li>
+                        <li>Acepta las reglas de seguridad</li>
+                        <li>Selecciona una ubicación (ej: us-central1)</li>
+                        <li>
+                          Haz clic en <strong>"Done"</strong>
+                        </li>
+                      </ol>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Imagen del Evento */}
+              <div>
+                <Label>Imagen del Evento</Label>
+                <div className="mt-2">
+                  {imagePreview && !imageError ? (
+                    <div className="relative">
+                      <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+                        {imagePreview.startsWith("data:") ? (
+                          // Para imágenes base64 (preview local)
+                          <img
+                            src={imagePreview || "/placeholder.svg"}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            onError={handleImageError}
+                            onLoad={handleImageLoad}
+                          />
+                        ) : (
+                          // Para URLs de Firebase o externas
+                          <Image
+                            src={imagePreview || "/placeholder.svg"}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                            onError={handleImageError}
+                            onLoad={handleImageLoad}
+                            unoptimized={imagePreview.includes("firebase")}
+                          />
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById("image-upload")?.click()}
+                          disabled={!storageStatus?.available}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Cambiar Imagen
+                        </Button>
+                        <Input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                          disabled={!storageStatus?.available}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                      <div className="text-center">
+                        <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="mt-4">
+                          <span className="mt-2 block text-sm font-medium text-gray-900">
+                            {imageError ? "Error cargando imagen - Subir nueva imagen" : "Subir imagen del evento"}
+                          </span>
+                          <span className="mt-1 block text-sm text-gray-500">
+                            PNG, JPG, GIF hasta 5MB
+                            {!storageStatus?.available && " (Storage no disponible)"}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-4"
+                          onClick={() => document.getElementById("image-upload")?.click()}
+                          disabled={!storageStatus?.available}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Seleccionar Imagen
+                        </Button>
+                        <Input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                          disabled={!storageStatus?.available}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Resto del formulario igual que antes... */}
               {/* Información Básica */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -417,7 +728,7 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="price">Precio (€)</Label>
+                    <Label htmlFor="price">Precio (CLP)</Label>
                     <Input
                       id="price"
                       type="number"
@@ -427,16 +738,32 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="maxAttendees">Máximo de Asistentes</Label>
-                    <Input
-                      id="maxAttendees"
-                      type="number"
-                      min="1"
-                      value={formData.maxAttendees || 0}
-                      onChange={(e) => handleInputChange("maxAttendees", Number(e.target.value))}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="hasLimitedCapacity"
+                      checked={formData.hasLimitedCapacity || false}
+                      onCheckedChange={(checked) => {
+                        handleInputChange("hasLimitedCapacity", checked)
+                        if (!checked) {
+                          handleInputChange("maxAttendees", 0)
+                        }
+                      }}
                     />
+                    <Label htmlFor="hasLimitedCapacity">Cupos Limitados</Label>
                   </div>
+
+                  {formData.hasLimitedCapacity && (
+                    <div>
+                      <Label htmlFor="maxAttendees">Máximo de Asistentes</Label>
+                      <Input
+                        id="maxAttendees"
+                        type="number"
+                        min="1"
+                        value={formData.maxAttendees || 0}
+                        onChange={(e) => handleInputChange("maxAttendees", Number(e.target.value))}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -604,11 +931,16 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
 
               {/* Botones */}
               <div className="flex space-x-4 pt-6">
-                <Button type="submit" disabled={loading} className="bg-pink-500 hover:bg-pink-600">
+                <Button type="submit" disabled={loading || uploadingImage} className="bg-pink-500 hover:bg-pink-600">
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Actualizando...
+                    </>
+                  ) : uploadingImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Subiendo imagen...
                     </>
                   ) : (
                     <>

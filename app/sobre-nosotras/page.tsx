@@ -165,36 +165,10 @@ export default function AboutPage() {
                 <div className="w-24 h-24 bg-pink-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold text-pink-600">S</span>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Sofia Hernández</h3>
+                <h3 className="text-xl font-semibold mb-2">Khrisna González</h3>
                 <p className="text-pink-600 font-medium mb-3">Fundadora & CEO</p>
                 <p className="text-gray-600 text-sm">
-                  Madre de dos, psicóloga infantil y apasionada por crear comunidades que nutran el alma.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg text-center">
-              <CardContent className="p-8">
-                <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-blue-600">C</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Carmen López</h3>
-                <p className="text-blue-600 font-medium mb-3">Directora de Comunidad</p>
-                <p className="text-gray-600 text-sm">
-                  Madre de tres, especialista en desarrollo comunitario y moderadora de nuestros espacios.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg text-center">
-              <CardContent className="p-8">
-                <div className="w-24 h-24 bg-green-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-green-600">P</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Dr. Patricia Ruiz</h3>
-                <p className="text-green-600 font-medium mb-3">Asesora Médica</p>
-                <p className="text-gray-600 text-sm">
-                  Pediatra, madre de uno y nuestra guía para asegurar información médica confiable.
+                  Madre de uno, informática y apasionada por crear comunidades que nutran el alma.
                 </p>
               </CardContent>
             </Card>
