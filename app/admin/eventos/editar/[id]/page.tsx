@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,7 +55,11 @@ interface Event {
   hasLimitedCapacity: boolean
 }
 
-export default function EditarEventoPage({ params }: { params: { id: string } }) {
+export default function EditarEventoPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap params using React.use()
+  const resolvedParams = use(params)
+  const eventId = resolvedParams.id
+
   const { user, isAdmin } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -130,14 +134,14 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
     checkStorageAvailability().then(setStorageStatus)
 
     loadEvent()
-  }, [user, isAdmin, params.id])
+  }, [user, isAdmin, eventId])
 
   const loadEvent = async () => {
-    if (!db || !params.id) return
+    if (!db || !eventId) return
 
     try {
       setLoadingEvent(true)
-      const eventDoc = await getDoc(doc(db, "events", params.id))
+      const eventDoc = await getDoc(doc(db, "events", eventId))
 
       if (eventDoc.exists()) {
         const eventData = { id: eventDoc.id, ...eventDoc.data() } as Event
@@ -275,7 +279,7 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !isAdmin || !params.id) return
+    if (!user || !isAdmin || !eventId) return
 
     setLoading(true)
     try {
@@ -354,7 +358,7 @@ export default function EditarEventoPage({ params }: { params: { id: string } })
       delete updateData.createdAt
       delete updateData.createdBy
 
-      await updateDoc(doc(db, "events", params.id), updateData)
+      await updateDoc(doc(db, "events", eventId), updateData)
 
       toast({
         title: "Evento actualizado",
