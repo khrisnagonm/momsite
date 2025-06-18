@@ -16,16 +16,21 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { collection, addDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { ArrowLeft, Plus, X } from "lucide-react"
+import { uploadEventImage } from "@/lib/firebase-storage"
+import { ArrowLeft, Plus, X, Upload, ImageIcon } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function NuevoEventoPage() {
   const { user, isAdmin } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>("")
 
   const [formData, setFormData] = useState({
     title: "",
@@ -39,10 +44,12 @@ export default function NuevoEventoPage() {
     location: "",
     address: "",
     price: 0,
+    hasLimitedCapacity: false,
     maxAttendees: 0,
     isOnline: false,
     isFree: false,
     isPopular: false,
+    image: "",
     organizer: {
       name: "",
       title: "",
@@ -80,6 +87,46 @@ export default function NuevoEventoPage() {
     }
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar tipo de archivo
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "Por favor selecciona un archivo de imagen válido.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "La imagen debe ser menor a 5MB.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setImageFile(file)
+
+      // Crear preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview("")
+    setFormData((prev) => ({ ...prev, image: "" }))
+  }
+
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
       setTags([...tags, newTag.trim()])
@@ -113,8 +160,33 @@ export default function NuevoEventoPage() {
 
     setLoading(true)
     try {
+      let imageUrl = formData.image
+
+      // Subir imagen si hay una seleccionada
+      if (imageFile) {
+        setUploadingImage(true)
+        try {
+          imageUrl = await uploadEventImage(imageFile)
+          toast({
+            title: "Imagen subida",
+            description: "La imagen se ha subido correctamente.",
+          })
+        } catch (error) {
+          console.error("Error uploading image:", error)
+          toast({
+            title: "Error",
+            description:
+              error instanceof Error ? error.message : "Error al subir la imagen. El evento se creará sin imagen.",
+            variant: "destructive",
+          })
+        } finally {
+          setUploadingImage(false)
+        }
+      }
+
       const eventData = {
         ...formData,
+        image: imageUrl,
         tags,
         currentAttendees: 0,
         rating: 0,
@@ -122,7 +194,12 @@ export default function NuevoEventoPage() {
         createdAt: new Date(),
         createdBy: user.uid,
         status: "active",
+        // Si no tiene cupos limitados, no guardar maxAttendees
+        maxAttendees: formData.hasLimitedCapacity ? formData.maxAttendees : null,
       }
+
+      // Remover el campo hasLimitedCapacity del objeto final
+      delete eventData.hasLimitedCapacity
 
       await addDoc(collection(db, "events"), eventData)
 
@@ -164,6 +241,59 @@ export default function NuevoEventoPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Imagen del Evento */}
+              <div>
+                <Label>Imagen del Evento</Label>
+                <div className="mt-2">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+                        <Image src={imagePreview || "/placeholder.svg"} alt="Preview" fill className="object-cover" />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                      <div className="text-center">
+                        <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="mt-4">
+                          <Label htmlFor="image-upload" className="cursor-pointer">
+                            <span className="mt-2 block text-sm font-medium text-gray-900">
+                              Subir imagen del evento
+                            </span>
+                            <span className="mt-1 block text-sm text-gray-500">PNG, JPG, GIF hasta 5MB</span>
+                          </Label>
+                          <Input
+                            id="image-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-4"
+                          onClick={() => document.getElementById("image-upload")?.click()}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Seleccionar Imagen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Información Básica */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -292,7 +422,7 @@ export default function NuevoEventoPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="price">Precio (€)</Label>
+                    <Label htmlFor="price">Precio (CLP)</Label>
                     <Input
                       id="price"
                       type="number"
@@ -302,15 +432,30 @@ export default function NuevoEventoPage() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="maxAttendees">Máximo de Asistentes</Label>
-                    <Input
-                      id="maxAttendees"
-                      type="number"
-                      min="1"
-                      value={formData.maxAttendees}
-                      onChange={(e) => handleInputChange("maxAttendees", Number(e.target.value))}
-                    />
+                  {/* Cupos Limitados */}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="hasLimitedCapacity"
+                        checked={formData.hasLimitedCapacity}
+                        onCheckedChange={(checked) => handleInputChange("hasLimitedCapacity", checked)}
+                      />
+                      <Label htmlFor="hasLimitedCapacity">Cupos Limitados</Label>
+                    </div>
+
+                    {formData.hasLimitedCapacity && (
+                      <div>
+                        <Label htmlFor="maxAttendees">Máximo de Asistentes</Label>
+                        <Input
+                          id="maxAttendees"
+                          type="number"
+                          min="1"
+                          value={formData.maxAttendees}
+                          onChange={(e) => handleInputChange("maxAttendees", Number(e.target.value))}
+                          placeholder="Ingresa el número máximo"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -403,8 +548,8 @@ export default function NuevoEventoPage() {
 
               {/* Botones */}
               <div className="flex space-x-4 pt-6">
-                <Button type="submit" disabled={loading} className="bg-pink-500 hover:bg-pink-600">
-                  {loading ? "Creando..." : "Crear Evento"}
+                <Button type="submit" disabled={loading || uploadingImage} className="bg-pink-500 hover:bg-pink-600">
+                  {loading ? "Creando..." : uploadingImage ? "Subiendo imagen..." : "Crear Evento"}
                 </Button>
                 <Link href="/admin/eventos">
                   <Button type="button" variant="outline">

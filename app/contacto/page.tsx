@@ -69,7 +69,7 @@ export default function ContactPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600">hola@momsite.com</p>
+                  <p className="text-gray-600">momsitecl@gmail.com</p>
                   <p className="text-sm text-gray-500 mt-1">Te respondemos en menos de 24 horas</p>
                 </CardContent>
               </Card>
@@ -82,7 +82,7 @@ export default function ContactPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600">+34 900 123 456</p>
+                  <p className="text-gray-600">+56 9 6823 9190</p>
                   <p className="text-sm text-gray-500 mt-1">Lunes a Viernes, 9:00 - 18:00</p>
                 </CardContent>
               </Card>
@@ -95,11 +95,7 @@ export default function ContactPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600">
-                    Calle de la Maternidad, 123
-                    <br />
-                    28001 Madrid, España
-                  </p>
+                  <p className="text-gray-600">Concón, Chile</p>
                   <p className="text-sm text-gray-500 mt-1">Visitas con cita previa</p>
                 </CardContent>
               </Card>
@@ -112,13 +108,13 @@ export default function ContactPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <a href="#" className="block text-pink-600 hover:text-pink-700 transition-colors">
-                      Instagram: @momsite_es
+                      Instagram: @momsitecl
                     </a>
                     <a href="#" className="block text-pink-600 hover:text-pink-700 transition-colors">
-                      Facebook: MomSite España
+                      Facebook: MomSite Chile
                     </a>
                     <a href="#" className="block text-pink-600 hover:text-pink-700 transition-colors">
-                      WhatsApp: +34 600 123 456
+                      WhatsApp: +56 9 6823 9190
                     </a>
                   </div>
                 </CardContent>
@@ -279,9 +275,7 @@ export default function ContactPage() {
               <p className="text-gray-600">
                 Mapa interactivo próximamente
                 <br />
-                Calle de la Maternidad, 123
-                <br />
-                28001 Madrid, España
+                Concón, Chile
               </p>
             </div>
           </div>

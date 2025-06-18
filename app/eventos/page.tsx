@@ -6,72 +6,171 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Search,
-  Calendar,
-  MapPin,
-  Clock,
-  Users,
-  Heart,
-  BookOpen,
-  Coffee,
-  Music,
-  Palette,
-  Gamepad2,
-  CalendarDays,
-} from "lucide-react"
-import { useEvents } from "@/hooks/useFirestore"
+import { Calendar, Clock, MapPin, Users, Star, Search, Filter } from "lucide-react"
+import { collection, query, where, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import Image from "next/image"
 
-const categories = [
-  { name: "Todas", icon: <Calendar className="h-4 w-4" /> },
-  { name: "Salud", icon: <Heart className="h-4 w-4" /> },
-  { name: "Creatividad", icon: <Palette className="h-4 w-4" /> },
-  { name: "Talleres", icon: <BookOpen className="h-4 w-4" /> },
-  { name: "Charlas", icon: <Coffee className="h-4 w-4" /> },
-  { name: "Actividades", icon: <Gamepad2 className="h-4 w-4" /> },
-  { name: "Música", icon: <Music className="h-4 w-4" /> },
-  { name: "Deportes", icon: <Users className="h-4 w-4" /> },
-]
+interface Event {
+  id: string
+  title: string
+  description: string
+  category: string
+  type: string
+  date: string
+  time: string
+  location: string
+  price: number
+  maxAttendees: number | null
+  currentAttendees: number
+  rating: number
+  reviewCount: number
+  isOnline: boolean
+  isFree: boolean
+  isPopular: boolean
+  image?: string
+  tags: string[]
+}
 
-export default function EventsPage() {
+export default function EventosPage() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("Todas")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedType, setSelectedType] = useState("all")
 
-  const { data: allEvents, loading, error, getAll } = useEvents()
+  const categories = [
+    "Lactancia",
+    "Bienestar",
+    "Educación",
+    "Alimentación",
+    "Apoyo Emocional",
+    "Creatividad",
+    "Salud",
+    "Desarrollo Infantil",
+  ]
 
-  // Load events ONLY once on mount - NO dependencies that change
+  const eventTypes = ["Taller", "Charla", "Webinar", "Clase", "Grupo de Apoyo", "Conferencia"]
+
   useEffect(() => {
-    getAll()
-  }, []) // Empty dependency array - only runs once
+    loadEvents()
+  }, [])
 
-  // Simple filtering
-  const filteredEvents = allEvents.filter((event) => {
-    if (!event.title) return false
+  useEffect(() => {
+    filterEvents()
+  }, [events, searchTerm, selectedCategory, selectedType])
 
-    const matchesSearch =
-      !searchTerm ||
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const loadEvents = async () => {
+    if (!db) return
 
-    const matchesCategory = selectedCategory === "Todas" || event.category === selectedCategory
-
-    return matchesSearch && matchesCategory
-  })
-
-  // Format date helper
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Fecha por confirmar"
     try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString("es-CL", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+      setLoading(true)
+      // Solo obtener eventos activos
+      const eventsQuery = query(collection(db, "events"), where("status", "==", "active"))
+      const querySnapshot = await getDocs(eventsQuery)
+
+      const eventsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Event[]
+
+      // Ordenar por fecha en el cliente
+      const sortedEvents = eventsData.sort((a, b) => {
+        const dateA = new Date(`${a.date} ${a.time}`)
+        const dateB = new Date(`${b.date} ${b.time}`)
+        return dateA.getTime() - dateB.getTime()
       })
+
+      setEvents(sortedEvents)
     } catch (error) {
-      return "Fecha por confirmar"
+      console.error("Error loading events:", error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  const filterEvents = () => {
+    let filtered = events
+
+    // Filtrar por búsqueda
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (event) =>
+          event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.location.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    // Filtrar por categoría
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((event) => event.category === selectedCategory)
+    }
+
+    // Filtrar por tipo
+    if (selectedType !== "all") {
+      filtered = filtered.filter((event) => event.type === selectedType)
+    }
+
+    setFilteredEvents(filtered)
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("es-CL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+  }
+
+  const formatTime = (timeString: string) => {
+    return timeString.slice(0, 5) // HH:MM
+  }
+
+  const formatPrice = (price: number, isFree: boolean) => {
+    if (isFree || price === 0) return "Gratis"
+    return `$${price.toLocaleString("es-CL")} CLP`
+  }
+
+  const getCategoryEmoji = (category: string) => {
+    const emojiMap: { [key: string]: string } = {
+      Lactancia: "🤱",
+      Bienestar: "🧘‍♀️",
+      Educación: "📚",
+      Alimentación: "🍎",
+      "Apoyo Emocional": "💝",
+      Creatividad: "🎨",
+      Salud: "🏥",
+      "Desarrollo Infantil": "👶",
+    }
+    return emojiMap[category] || "✨"
+  }
+
+  const getTypeEmoji = (type: string) => {
+    const emojiMap: { [key: string]: string } = {
+      Taller: "🛠️",
+      Charla: "💬",
+      Webinar: "💻",
+      Clase: "📖",
+      "Grupo de Apoyo": "🤗",
+      Conferencia: "🎤",
+    }
+    return emojiMap[type] || "📅"
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando eventos...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -80,168 +179,159 @@ export default function EventsPage() {
       <section className="bg-gradient-to-br from-pink-50 to-rose-50 py-16">
         <div className="container px-4">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Eventos y Actividades</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Eventos y Talleres</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Descubre talleres, charlas y actividades diseñadas especialmente para madres y sus hijos
+              Descubre eventos diseñados especialmente para madres y familias
             </p>
           </div>
         </div>
       </section>
 
       <div className="container px-4 py-8">
-        {/* Simple Debug Info */}
-        <Card className="mb-8 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="text-sm space-y-2">
-              <h3 className="font-bold">📊 Estado Actual</h3>
-              <p>Loading: {loading.toString()}</p>
-              <p>Error: {error || "None"}</p>
-              <p>Total Events: {allEvents.length}</p>
-              <p>Filtered Events: {filteredEvents.length}</p>
-              <p>Search: "{searchTerm}"</p>
-              <p>Category: {selectedCategory}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Filters */}
+        {/* Filtros */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar eventos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Buscar eventos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.name} value={category.name}>
-                      <div className="flex items-center space-x-2">
-                        {category.icon}
-                        <span>{category.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-4">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-48">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {getCategoryEmoji(category)} {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
+                    {eventTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {getTypeEmoji(type)} {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Loading */}
-        {loading && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
-            <p className="mt-2">Cargando eventos...</p>
+        {/* Eventos */}
+        {filteredEvents.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay eventos disponibles</h3>
+            <p className="text-gray-600">
+              {searchTerm || selectedCategory !== "all" || selectedType !== "all"
+                ? "No se encontraron eventos que coincidan con los filtros seleccionados."
+                : "Aún no hay eventos programados. ¡Vuelve pronto para ver las novedades!"}
+            </p>
           </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <Card className="mb-8 border-red-200">
-            <CardContent className="pt-6 text-center py-12">
-              <CalendarDays className="h-12 w-12 text-red-500 mx-auto mb-2" />
-              <p className="text-lg font-semibold text-red-500">Error al cargar eventos</p>
-              <p className="text-sm text-gray-600 mt-2">{error}</p>
-              <Button onClick={() => getAll()} className="mt-4">
-                Reintentar
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Events or Empty State */}
-        {!loading && !error && (
-          <>
-            {filteredEvents.length > 0 ? (
-              <div className="space-y-6">
-                <p className="text-sm text-gray-600">Mostrando {filteredEvents.length} evento(s)</p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredEvents.map((event) => (
-                    <Card key={event.id} className="hover:shadow-lg transition-shadow overflow-hidden">
-                      <div className="relative">
-                        <img
-                          src="/placeholder.svg?height=200&width=400&text=Evento"
-                          alt={event.title}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute top-4 left-4">
-                          <Badge className="bg-white text-gray-800">{event.category}</Badge>
-                        </div>
-                        <div className="absolute bottom-4 left-4">
-                          <Badge variant="secondary" className="bg-black/70 text-white">
-                            {event.type}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <CardContent className="p-6">
-                        <h3 className="font-semibold text-lg mb-2">{event.title}</h3>
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">{event.description}</p>
-
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            {formatDate(event.date)}
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="h-4 w-4 mr-2" />
-                            {event.time || "Hora por confirmar"}
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            {event.location || "Ubicación por confirmar"}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-2xl font-bold text-green-600">
-                            {event.price === 0 ? "Gratis" : `$${event.price?.toLocaleString("es-CL")}`}
-                          </span>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Users className="h-4 w-4 mr-1" />
-                            {event.currentAttendees || 0}/{event.maxAttendees || "∞"}
-                          </div>
-                        </div>
-
-                        <Button className="w-full" size="sm">
-                          Inscribirse
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((event) => (
+              <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                {/* Imagen del evento */}
+                <div className="relative h-48 bg-gray-200">
+                  {event.image ? (
+                    <Image src={event.image || "/placeholder.svg"} alt={event.title} fill className="object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <Calendar className="h-12 w-12 text-gray-400" />
+                    </div>
+                  )}
+                  {event.isPopular && <Badge className="absolute top-2 right-2 bg-pink-500">⭐ Popular</Badge>}
+                  {event.isFree && <Badge className="absolute top-2 left-2 bg-green-500">🎁 Gratis</Badge>}
                 </div>
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="pt-6 text-center py-12">
-                  <CalendarDays className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">
-                    {allEvents.length === 0 ? "No hay eventos disponibles" : "No se encontraron eventos"}
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => {
-                      setSearchTerm("")
-                      setSelectedCategory("Todas")
-                    }}
-                  >
-                    Limpiar filtros
-                  </Button>
+
+                <CardContent className="p-6">
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary">
+                        {getCategoryEmoji(event.category)} {event.category}
+                      </Badge>
+                      <Badge variant="outline">
+                        {getTypeEmoji(event.type)} {event.type}
+                      </Badge>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{event.title}</h3>
+                    <p className="text-gray-600 text-sm line-clamp-2">{event.description}</p>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="h-4 w-4 mr-2" />📅 {formatDate(event.date)}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Clock className="h-4 w-4 mr-2" />⏰ {formatTime(event.time)}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="h-4 w-4 mr-2" />
+                      {event.isOnline ? "💻 Online" : `📍 ${event.location}`}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="h-4 w-4 mr-2" />👥{" "}
+                      {event.maxAttendees
+                        ? `${event.currentAttendees}/${event.maxAttendees} asistentes`
+                        : `${event.currentAttendees} asistentes`}
+                    </div>
+                    {event.rating > 0 && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Star className="h-4 w-4 mr-2 fill-yellow-400 text-yellow-400" />⭐ {event.rating.toFixed(1)} (
+                        {event.reviewCount} reseñas)
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-semibold text-pink-600">
+                      💰 {formatPrice(event.price, event.isFree)}
+                    </span>
+                    <Button size="sm" className="bg-pink-500 hover:bg-pink-600">
+                      Ver Detalles
+                    </Button>
+                  </div>
+
+                  {/* Tags */}
+                  {event.tags && event.tags.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1">
+                      {event.tags.slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          🏷️ {tag}
+                        </Badge>
+                      ))}
+                      {event.tags.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          ➕ {event.tags.length - 3} más
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
-          </>
+            ))}
+          </div>
         )}
       </div>
     </div>
