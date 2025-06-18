@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Plus, X, Save, User, MapPin, Award, DollarSign, Globe, Instagram, Facebook } from "lucide-react"
 import Link from "next/link"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { getDb } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import { toast } from "sonner"
 
 const specialtyOptions = [
@@ -28,12 +28,9 @@ const specialtyOptions = [
   "Ginecología",
   "Fisioterapia",
   "Doula",
-  "Obstetricia",
-  "Psicología Perinatal",
-  "Terapia Familiar",
-  "Yoga Prenatal",
-  "Pilates",
-  "Masaje Terapéutico",
+  "Matrona",
+  "Psiquiatría",
+  "Terapia Ocupacional",
 ]
 
 const locationOptions = ["CABA", "Zona Norte", "Zona Oeste", "Zona Sur", "La Plata", "Online"]
@@ -137,8 +134,6 @@ export default function NewProfessionalPage() {
     setSaving(true)
 
     try {
-      const db = getDb()
-
       const professionalData = {
         name: formData.name,
         title: formData.title,

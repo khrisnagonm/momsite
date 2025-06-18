@@ -1,0 +1,538 @@
+"use client"
+
+import type React from "react"
+
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ArrowLeft, Save, MapPin, Clock, Phone, Mail, Globe, DollarSign } from "lucide-react"
+import Link from "next/link"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { toast } from "sonner"
+
+const categories = [
+  "Parque",
+  "Cafetería",
+  "Centro Comercial",
+  "Biblioteca",
+  "Centro Comunitario",
+  "Restaurante",
+  "Espacio Cultural",
+  "Gimnasio",
+  "Spa",
+  "Centro de Salud",
+]
+
+const cities = [
+  "Santiago",
+  "Las Condes",
+  "Providencia",
+  "Ñuñoa",
+  "La Reina",
+  "Vitacura",
+  "San Miguel",
+  "Maipú",
+  "Puente Alto",
+  "La Florida",
+]
+
+const amenitiesOptions = [
+  "Cambiador de bebés",
+  "Área de lactancia",
+  "WiFi gratuito",
+  "Estacionamiento",
+  "Acceso para sillas de ruedas",
+  "Área de juegos",
+  "Menú infantil",
+  "Tronas disponibles",
+  "Espacio para cochecitos",
+  "Baños familiares",
+  "Área verde",
+  "Zona tranquila",
+  "Aire acondicionado",
+  "Calefacción",
+]
+
+const daysOfWeek = [
+  { key: "monday", label: "Lunes" },
+  { key: "tuesday", label: "Martes" },
+  { key: "wednesday", label: "Miércoles" },
+  { key: "thursday", label: "Jueves" },
+  { key: "friday", label: "Viernes" },
+  { key: "saturday", label: "Sábado" },
+  { key: "sunday", label: "Domingo" },
+]
+
+export default function NuevoLugarPage() {
+  const { user, isAdmin, loading } = useAuth()
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "",
+    description: "",
+    address: "",
+    city: "",
+    phone: "",
+    email: "",
+    website: "",
+    isAccessible: false,
+    isVerified: false,
+    isActive: true,
+    isFree: true,
+    price: 0,
+  })
+
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const [hours, setHours] = useState<{ [key: string]: { open: string; close: string; closed: boolean } }>({
+    monday: { open: "09:00", close: "18:00", closed: false },
+    tuesday: { open: "09:00", close: "18:00", closed: false },
+    wednesday: { open: "09:00", close: "18:00", closed: false },
+    thursday: { open: "09:00", close: "18:00", closed: false },
+    friday: { open: "09:00", close: "18:00", closed: false },
+    saturday: { open: "10:00", close: "16:00", closed: false },
+    sunday: { open: "10:00", close: "16:00", closed: true },
+  })
+
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      router.push("/")
+    }
+  }, [user, isAdmin, loading, router])
+
+  const handleInputChange = (field: string, value: string | number | boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const toggleAmenity = (amenity: string) => {
+    setSelectedAmenities((prev) => (prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]))
+  }
+
+  const handleHourChange = (day: string, field: "open" | "close" | "closed", value: string | boolean) => {
+    setHours((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!formData.name || !formData.category || !formData.city) {
+      toast.error("Por favor completa los campos obligatorios")
+      return
+    }
+
+    if (!user) {
+      toast.error("Usuario no autenticado")
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const placeData = {
+        name: formData.name,
+        category: formData.category,
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        phone: formData.phone,
+        email: formData.email,
+        website: formData.website,
+        rating: 0,
+        reviewCount: 0,
+        isAccessible: formData.isAccessible,
+        isVerified: formData.isVerified,
+        isActive: formData.isActive,
+        isFree: formData.isFree,
+        price: formData.isFree ? 0 : formData.price,
+        amenities: selectedAmenities,
+        hours,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: user.uid,
+      }
+
+      const collectionRef = collection(db, "places")
+      await addDoc(collectionRef, placeData)
+
+      toast.success("Lugar agregado correctamente")
+      router.push("/admin/lugares")
+    } catch (error) {
+      console.error("Error adding place:", error)
+      const errorMessage = error instanceof Error ? error.message : "Error al agregar el lugar"
+      toast.error(errorMessage)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || !isAdmin) {
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Link href="/admin/lugares">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Nuevo Lugar</h1>
+              <p className="text-gray-600 mt-1">Agrega un nuevo lugar de encuentro</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Información Básica */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Información Básica
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Nombre del Lugar *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        placeholder="Ej: Café Mamá & Bebé"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="category">Categoría *</Label>
+                      <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una categoría" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Descripción</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => handleInputChange("description", e.target.value)}
+                      placeholder="Describe el lugar y por qué es ideal para madres..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="city">Ciudad *</Label>
+                      <Select value={formData.city} onValueChange={(value) => handleInputChange("city", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una ciudad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cities.map((city) => (
+                            <SelectItem key={city} value={city}>
+                              {city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="address">Dirección</Label>
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange("address", e.target.value)}
+                        placeholder="Av. Providencia 123"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Comodidades */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comodidades</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {amenitiesOptions.map((amenity) => (
+                      <div key={amenity} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={amenity}
+                          checked={selectedAmenities.includes(amenity)}
+                          onCheckedChange={() => toggleAmenity(amenity)}
+                        />
+                        <Label htmlFor={amenity} className="text-sm">
+                          {amenity}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedAmenities.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Comodidades seleccionadas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedAmenities.map((amenity) => (
+                          <Badge key={amenity} variant="secondary">
+                            {amenity}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Horarios */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Clock className="h-5 w-5 mr-2" />
+                    Horarios de Funcionamiento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {daysOfWeek.map((day) => (
+                    <div key={day.key} className="flex items-center space-x-4">
+                      <div className="w-20">
+                        <Label className="text-sm font-medium">{day.label}</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${day.key}-closed`}
+                          checked={hours[day.key]?.closed || false}
+                          onCheckedChange={(checked) => handleHourChange(day.key, "closed", checked)}
+                        />
+                        <Label htmlFor={`${day.key}-closed`} className="text-sm">
+                          Cerrado
+                        </Label>
+                      </div>
+                      {!hours[day.key]?.closed && (
+                        <>
+                          <Input
+                            type="time"
+                            value={hours[day.key]?.open || "09:00"}
+                            onChange={(e) => handleHourChange(day.key, "open", e.target.value)}
+                            className="w-32"
+                          />
+                          <span className="text-sm text-gray-500">a</span>
+                          <Input
+                            type="time"
+                            value={hours[day.key]?.close || "18:00"}
+                            onChange={(e) => handleHourChange(day.key, "close", e.target.value)}
+                            className="w-32"
+                          />
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Contacto */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Phone className="h-5 w-5 mr-2" />
+                    Información de Contacto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      placeholder="+56 9 1234 5678"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      placeholder="contacto@lugar.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="website" className="flex items-center">
+                      <Globe className="h-4 w-4 mr-2" />
+                      Sitio Web
+                    </Label>
+                    <Input
+                      id="website"
+                      value={formData.website}
+                      onChange={(e) => handleInputChange("website", e.target.value)}
+                      placeholder="https://ejemplo.com"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Precio */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2" />
+                    Precio
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isFree"
+                      checked={formData.isFree}
+                      onCheckedChange={(checked) => handleInputChange("isFree", checked)}
+                    />
+                    <Label htmlFor="isFree">Lugar gratuito</Label>
+                  </div>
+                  {!formData.isFree && (
+                    <div>
+                      <Label htmlFor="price">Precio promedio (CLP)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        min="0"
+                        value={formData.price}
+                        onChange={(e) => handleInputChange("price", Number(e.target.value))}
+                        placeholder="15000"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Estado */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Estado del Lugar</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="isActive">Lugar Activo</Label>
+                      <p className="text-sm text-gray-500">El lugar aparecerá en las búsquedas públicas</p>
+                    </div>
+                    <Switch
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) => handleInputChange("isActive", checked)}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="isAccessible">Accesible</Label>
+                      <p className="text-sm text-gray-500">Lugar accesible para personas con discapacidad</p>
+                    </div>
+                    <Switch
+                      id="isAccessible"
+                      checked={formData.isAccessible}
+                      onCheckedChange={(checked) => handleInputChange("isAccessible", checked)}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="isVerified">Lugar Verificado</Label>
+                      <p className="text-sm text-gray-500">Marca el lugar como verificado por el equipo</p>
+                    </div>
+                    <Switch
+                      id="isVerified"
+                      checked={formData.isVerified}
+                      onCheckedChange={(checked) => handleInputChange("isVerified", checked)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t">
+            <Link href="/admin/lugares">
+              <Button variant="outline" disabled={saving}>
+                Cancelar
+              </Button>
+            </Link>
+            <Button type="submit" disabled={saving} className="bg-pink-500 hover:bg-pink-600">
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Lugar
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

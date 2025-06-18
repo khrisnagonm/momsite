@@ -14,7 +14,7 @@ import {
   type QueryConstraint,
   serverTimestamp,
 } from "firebase/firestore"
-import { getDb } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 
@@ -30,7 +30,6 @@ export function useFirestore<T extends { id: string }>(collectionName: string) {
     try {
       setLoading(true)
       setError(null)
-      const db = getDb()
 
       const q = query(collection(db, collectionName), ...constraints)
       const snapshot = await getDocs(q)
@@ -58,7 +57,6 @@ export function useFirestore<T extends { id: string }>(collectionName: string) {
   // Get single document
   const getById = async (id: string): Promise<T | null> => {
     try {
-      const db = getDb()
       const docRef = doc(db, collectionName, id)
       const docSnap = await getDoc(docRef)
 
@@ -84,7 +82,6 @@ export function useFirestore<T extends { id: string }>(collectionName: string) {
     }
 
     try {
-      const db = getDb()
       const docData = {
         ...data,
         createdAt: serverTimestamp(),
@@ -110,7 +107,6 @@ export function useFirestore<T extends { id: string }>(collectionName: string) {
     }
 
     try {
-      const db = getDb()
       const docRef = doc(db, collectionName, id)
       const updateData = {
         ...data,
@@ -131,7 +127,6 @@ export function useFirestore<T extends { id: string }>(collectionName: string) {
   // Delete document
   const remove = async (id: string) => {
     try {
-      const db = getDb()
       const docRef = doc(db, collectionName, id)
       await deleteDoc(docRef)
       toast.success("Documento eliminado exitosamente")
@@ -148,7 +143,6 @@ export function useFirestore<T extends { id: string }>(collectionName: string) {
     try {
       setLoading(true)
       setError(null)
-      const db = getDb()
       const q = query(collection(db, collectionName), ...constraints)
 
       const unsubscribe = onSnapshot(
