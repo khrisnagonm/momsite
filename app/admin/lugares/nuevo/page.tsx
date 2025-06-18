@@ -15,10 +15,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Save, Mail, Globe, MapPin, Clock, Phone, DollarSign, Settings } from "lucide-react"
+import { ArrowLeft, Save, Mail, Globe, MapPin, Clock, Phone, DollarSign, Settings, X, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { uploadImage } from "@/lib/firebase-storage"
 import { toast } from "sonner"
 
 const categories = [
@@ -410,6 +411,7 @@ export default function NuevoLugarPage() {
   const { user, isAdmin, loading } = useAuth()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -439,6 +441,10 @@ export default function NuevoLugarPage() {
     saturday: { open: "10:00", close: "16:00", closed: false },
     sunday: { open: "10:00", close: "16:00", closed: true },
   })
+
+  // Image upload state
+  const [images, setImages] = useState<string[]>([])
+  const [imageFiles, setImageFiles] = useState<File[]>([])
 
   // Available cities based on selected region
   const availableCities = formData.region
@@ -481,6 +487,34 @@ export default function NuevoLugarPage() {
     }))
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    setUploadingImage(true)
+    try {
+      const uploadPromises = files.map(async (file) => {
+        const imageUrl = await uploadImage(file, "places")
+        return imageUrl
+      })
+
+      const uploadedUrls = await Promise.all(uploadPromises)
+      setImages((prev) => [...prev, ...uploadedUrls])
+      setImageFiles((prev) => [...prev, ...files])
+      toast.success(`${files.length} imagen(es) subida(s) correctamente`)
+    } catch (error) {
+      console.error("Error uploading images:", error)
+      toast.error("Error al subir las imágenes")
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -516,6 +550,7 @@ export default function NuevoLugarPage() {
         price: formData.isFree ? 0 : formData.price,
         amenities: selectedAmenities,
         hours,
+        images, // Add uploaded images
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         createdBy: user.uid,
@@ -664,6 +699,66 @@ export default function NuevoLugarPage() {
                     />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Imágenes */}
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl font-semibold">
+                  <ImageIcon className="h-5 w-5 mr-2 text-purple-600" />
+                  Imágenes del Lugar
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="images">Subir Imágenes</Label>
+                  <div className="mt-2">
+                    <Input
+                      id="images"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Puedes subir múltiples imágenes. Formatos soportados: JPG, PNG, WebP
+                    </p>
+                  </div>
+                </div>
+
+                {uploadingImage && (
+                  <div className="flex items-center space-x-2 text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm">Subiendo imágenes...</span>
+                  </div>
+                )}
+
+                {images.length > 0 && (
+                  <div>
+                    <Label>Imágenes Subidas ({images.length})</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                      {images.map((imageUrl, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={imageUrl || "/placeholder.svg"}
+                            alt={`Imagen ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -887,7 +982,7 @@ export default function NuevoLugarPage() {
                 Cancelar
               </Button>
             </Link>
-            <Button type="submit" disabled={saving} className="bg-pink-500 hover:bg-pink-600">
+            <Button type="submit" disabled={saving || uploadingImage} className="bg-pink-500 hover:bg-pink-600">
               {saving ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

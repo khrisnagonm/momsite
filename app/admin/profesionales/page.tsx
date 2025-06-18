@@ -21,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from "next/link"
-import { Users, Plus, Search, Edit, Trash2, Eye, Star, MapPin, Mail, Award, Clock } from "lucide-react"
+import { Users, Plus, Search, Edit, Trash2, Eye, Star, MapPin, Mail, Award, Clock, ArrowLeft } from "lucide-react"
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { toast } from "sonner"
@@ -202,6 +202,10 @@ export default function ProfessionalsAdminPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
+            <Link href="/admin" className="inline-flex items-center text-pink-600 hover:text-pink-700 mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver al Panel
+            </Link>
             <h1 className="text-3xl font-bold text-gray-900">Gestión de Profesionales</h1>
             <p className="text-gray-600 mt-1">Administra el directorio de profesionales verificados</p>
           </div>
