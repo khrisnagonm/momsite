@@ -21,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from "next/link"
-import { MapPin, Plus, Search, Edit, Trash2, Eye, Star, Clock, Users, Wifi, Car } from "lucide-react"
+import { MapPin, Plus, Search, Edit, Trash2, Eye, Star, Clock, Users, Wifi, Car, ArrowLeft } from "lucide-react"
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { toast } from "sonner"
@@ -200,6 +200,14 @@ export default function LugaresAdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container px-4 py-8">
+        {/* Back to Admin Panel */}
+        <div className="mb-6">
+          <Link href="/admin" className="inline-flex items-center text-pink-600 hover:text-pink-700">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver al Panel
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>

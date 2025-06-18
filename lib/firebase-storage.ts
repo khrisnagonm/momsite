@@ -120,6 +120,30 @@ export async function uploadEventImage(file: File): Promise<string> {
   }
 }
 
+export const uploadImage = async (file: File, folder = "general"): Promise<string> => {
+  try {
+    const timestamp = Date.now()
+    const fileName = `${folder}/${timestamp}_${file.name}`
+    const storageRef = ref(storage, fileName)
+
+    const snapshot = await uploadBytes(storageRef, file)
+    const downloadURL = await getDownloadURL(snapshot.ref)
+
+    return downloadURL
+  } catch (error) {
+    console.error("Error uploading image:", error)
+    throw new Error("Error al subir la imagen")
+  }
+}
+
+export const uploadProfessionalImage = async (file: File): Promise<string> => {
+  return uploadImage(file, "professionals")
+}
+
+export const uploadPlaceImage = async (file: File): Promise<string> => {
+  return uploadImage(file, "places")
+}
+
 export async function deleteEventImage(imageUrl: string): Promise<void> {
   try {
     if (!imageUrl || !imageUrl.includes("firebase")) {
