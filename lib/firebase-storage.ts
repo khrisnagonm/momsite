@@ -1,28 +1,6 @@
 import { storage } from "@/lib/firebase"
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 
-// Función para sanitizar nombres de archivo
-function sanitizeFileName(fileName: string): string {
-  return (
-    fileName
-      // Convertir a minúsculas
-      .toLowerCase()
-      // Reemplazar espacios con guiones
-      .replace(/\s+/g, "-")
-      // Eliminar acentos y caracteres especiales
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      // Mantener solo letras, números, guiones y puntos
-      .replace(/[^a-z0-9.-]/g, "")
-      // Eliminar múltiples guiones consecutivos
-      .replace(/-+/g, "-")
-      // Eliminar guiones al inicio y final
-      .replace(/^-+|-+$/g, "")
-      // Limitar longitud del nombre (sin extensión)
-      .substring(0, 50)
-  )
-}
-
 // Función para verificar si Firebase Storage está disponible
 export async function checkStorageAvailability(): Promise<{ available: boolean; error?: string }> {
   try {
@@ -78,20 +56,13 @@ export async function uploadEventImage(file: File): Promise<string> {
       throw new Error("La imagen debe ser menor a 5MB")
     }
 
-    // Sanitizar nombre del archivo
-    const originalName = file.name
-    const extension = originalName.split(".").pop()?.toLowerCase() || "jpg"
-    const nameWithoutExtension = originalName.substring(0, originalName.lastIndexOf(".")) || originalName
-    const sanitizedName = sanitizeFileName(nameWithoutExtension)
-
     // Generar nombre único para el archivo
     const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(2, 8)
-    const fileName = `events/${timestamp}_${sanitizedName}.${extension}`
+    const randomId = Math.random().toString(36).substring(2, 15)
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg"
+    const fileName = `events/${timestamp}_${randomId}.${extension}`
 
-    console.log("📝 Nombre original:", originalName)
-    console.log("📝 Nombre sanitizado:", sanitizedName)
-    console.log("📝 Nombre final del archivo:", fileName)
+    console.log("📝 Nombre del archivo generado:", fileName)
 
     // Crear referencia en Firebase Storage
     const storageRef = ref(storage, fileName)
@@ -103,8 +74,7 @@ export async function uploadEventImage(file: File): Promise<string> {
     const metadata = {
       contentType: file.type,
       customMetadata: {
-        originalName: originalName,
-        sanitizedName: sanitizedName,
+        originalName: file.name,
         uploadedAt: new Date().toISOString(),
       },
     }
@@ -152,42 +122,16 @@ export async function uploadEventImage(file: File): Promise<string> {
 
 export const uploadImage = async (file: File, folder = "general"): Promise<string> => {
   try {
-    // Sanitizar nombre del archivo
-    const originalName = file.name
-    const extension = originalName.split(".").pop()?.toLowerCase() || "jpg"
-    const nameWithoutExtension = originalName.substring(0, originalName.lastIndexOf(".")) || originalName
-    const sanitizedName = sanitizeFileName(nameWithoutExtension)
-
-    // Generar nombre único
     const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(2, 8)
-    const fileName = `${folder}/${timestamp}_${sanitizedName}.${extension}`
-
-    console.log("📝 Subiendo imagen:", {
-      original: originalName,
-      sanitized: sanitizedName,
-      final: fileName,
-    })
-
+    const fileName = `${folder}/${timestamp}_${file.name}`
     const storageRef = ref(storage, fileName)
 
-    // Metadata con información del archivo original
-    const metadata = {
-      contentType: file.type,
-      customMetadata: {
-        originalName: originalName,
-        sanitizedName: sanitizedName,
-        uploadedAt: new Date().toISOString(),
-      },
-    }
-
-    const snapshot = await uploadBytes(storageRef, file, metadata)
+    const snapshot = await uploadBytes(storageRef, file)
     const downloadURL = await getDownloadURL(snapshot.ref)
 
-    console.log("✅ Imagen subida exitosamente:", downloadURL)
     return downloadURL
   } catch (error) {
-    console.error("❌ Error uploading image:", error)
+    console.error("Error uploading image:", error)
     throw new Error("Error al subir la imagen")
   }
 }

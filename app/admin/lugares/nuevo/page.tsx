@@ -15,12 +15,26 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Save, Mail, Globe, MapPin, Clock, Phone, DollarSign, Settings, X, ImageIcon } from "lucide-react"
+import {
+  ArrowLeft,
+  Save,
+  Mail,
+  Globe,
+  MapPin,
+  Clock,
+  Phone,
+  DollarSign,
+  Settings,
+  X,
+  ImageIcon,
+  Upload,
+} from "lucide-react"
 import Link from "next/link"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { uploadImage } from "@/lib/firebase-storage"
+import { uploadEventImage } from "@/lib/firebase-storage"
 import { toast } from "sonner"
+import Image from "next/image"
 
 const categories = [
   "Parque",
@@ -442,9 +456,10 @@ export default function NuevoLugarPage() {
     sunday: { open: "10:00", close: "16:00", closed: true },
   })
 
-  // Image upload state
-  const [images, setImages] = useState<string[]>([])
+  // Image upload state - USANDO LA MISMA LÓGICA QUE EVENTOS
   const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [uploadedImages, setUploadedImages] = useState<string[]>([])
 
   // Available cities based on selected region
   const availableCities = formData.region
@@ -487,32 +502,42 @@ export default function NuevoLugarPage() {
     }))
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // USANDO LA MISMA LÓGICA QUE EVENTOS PARA IMÁGENES
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
 
-    setUploadingImage(true)
-    try {
-      const uploadPromises = files.map(async (file) => {
-        const imageUrl = await uploadImage(file, "places")
-        return imageUrl
-      })
+    // Validar cada archivo
+    for (const file of files) {
+      // Validar tipo de archivo
+      if (!file.type.startsWith("image/")) {
+        toast.error("Por favor selecciona solo archivos de imagen válidos.")
+        return
+      }
 
-      const uploadedUrls = await Promise.all(uploadPromises)
-      setImages((prev) => [...prev, ...uploadedUrls])
-      setImageFiles((prev) => [...prev, ...files])
-      toast.success(`${files.length} imagen(es) subida(s) correctamente`)
-    } catch (error) {
-      console.error("Error uploading images:", error)
-      toast.error("Error al subir las imágenes")
-    } finally {
-      setUploadingImage(false)
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Las imágenes deben ser menores a 5MB.")
+        return
+      }
     }
+
+    setImageFiles((prev) => [...prev, ...files])
+
+    // Crear previews
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreviews((prev) => [...prev, e.target?.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
   }
 
   const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index))
     setImageFiles((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -531,6 +556,28 @@ export default function NuevoLugarPage() {
     setSaving(true)
 
     try {
+      let imageUrls: string[] = []
+
+      // Subir imágenes si hay alguna seleccionada - USANDO LA MISMA FUNCIÓN QUE EVENTOS
+      if (imageFiles.length > 0) {
+        setUploadingImage(true)
+        try {
+          const uploadPromises = imageFiles.map(async (file) => {
+            return await uploadEventImage(file) // USANDO LA MISMA FUNCIÓN QUE FUNCIONA
+          })
+
+          imageUrls = await Promise.all(uploadPromises)
+          toast.success(`${imageUrls.length} imagen(es) subida(s) correctamente`)
+        } catch (error) {
+          console.error("Error uploading images:", error)
+          toast.error(
+            error instanceof Error ? error.message : "Error al subir las imágenes. El lugar se creará sin imágenes.",
+          )
+        } finally {
+          setUploadingImage(false)
+        }
+      }
+
       const placeData = {
         name: formData.name,
         category: formData.category,
@@ -550,7 +597,7 @@ export default function NuevoLugarPage() {
         price: formData.isFree ? 0 : formData.price,
         amenities: selectedAmenities,
         hours,
-        images, // Add uploaded images
+        images: imageUrls, // Usar las URLs subidas
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         createdBy: user.uid,
@@ -702,7 +749,7 @@ export default function NuevoLugarPage() {
               </CardContent>
             </Card>
 
-            {/* Imágenes */}
+            {/* Imágenes - USANDO LA MISMA LÓGICA QUE EVENTOS */}
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl font-semibold">
@@ -712,53 +759,93 @@ export default function NuevoLugarPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="images">Subir Imágenes</Label>
+                  <Label>Imágenes del Lugar</Label>
                   <div className="mt-2">
-                    <Input
-                      id="images"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      className="cursor-pointer"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Puedes subir múltiples imágenes. Formatos soportados: JPG, PNG, WebP
-                    </p>
+                    {imagePreviews.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative">
+                              <div className="relative w-full h-32 rounded-lg overflow-hidden bg-gray-100">
+                                <Image
+                                  src={preview || "/placeholder.svg"}
+                                  alt={`Preview ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={() => removeImage(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                          <div className="text-center">
+                            <Label htmlFor="additional-images" className="cursor-pointer">
+                              <span className="text-sm font-medium text-gray-900">Agregar más imágenes</span>
+                            </Label>
+                            <Input
+                              id="additional-images"
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handleImageChange}
+                              className="hidden"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => document.getElementById("additional-images")?.click()}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Agregar Imágenes
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                        <div className="text-center">
+                          <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                          <div className="mt-4">
+                            <Label htmlFor="image-upload" className="cursor-pointer">
+                              <span className="mt-2 block text-sm font-medium text-gray-900">
+                                Subir imágenes del lugar
+                              </span>
+                              <span className="mt-1 block text-sm text-gray-500">PNG, JPG, GIF hasta 5MB cada una</span>
+                            </Label>
+                            <Input
+                              id="image-upload"
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handleImageChange}
+                              className="hidden"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => document.getElementById("image-upload")?.click()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Seleccionar Imágenes
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {uploadingImage && (
-                  <div className="flex items-center space-x-2 text-blue-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="text-sm">Subiendo imágenes...</span>
-                  </div>
-                )}
-
-                {images.length > 0 && (
-                  <div>
-                    <Label>Imágenes Subidas ({images.length})</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-                      {images.map((imageUrl, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={imageUrl || "/placeholder.svg"}
-                            alt={`Imagen ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -988,6 +1075,8 @@ export default function NuevoLugarPage() {
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Guardando...
                 </>
+              ) : uploadingImage ? (
+                "Subiendo imágenes..."
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
