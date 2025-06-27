@@ -1,5 +1,5 @@
 
-# MomSite – Family Community Hub
+# MomSite 👨‍👩‍👦 – Family Community Hub
 
 A community-driven platform built with React and JavaScript, serving families with product recommendations, doctor referrals, a second-hand marketplace, FAQ Q&A, and an events calendar. Uses Firebase Firestore, Firebase Auth, React Router, hosted on Vercel.
 
