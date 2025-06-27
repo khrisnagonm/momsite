@@ -1,46 +1,52 @@
-📝 Description
-This project is my mother's personal website. Designed to be a welcoming and easy-to-navigate space, it allows her to share her interests, hobbies, and perhaps even a photo gallery or a blog. The primary goal is to provide her with a simple, personalized online presence.
 
-✨ Features
-Responsive Design: Adapts to various screen sizes (desktop, tablet, mobile).
+# MomSite – Family Community Hub
 
-Customizable Sections: Easy to add or modify sections like "About Me," "Gallery," "Contact," etc.
+A community-driven platform built with React and JavaScript, serving families with product recommendations, doctor referrals, a second-hand marketplace, FAQ Q&A, and an events calendar. Uses Firebase Firestore, Firebase Auth, React Router, hosted on Vercel.
 
-User-Friendly Interface: Intuitive and clean navigation.
+---
 
-Optimized Performance: Fast loading times for a better user experience.
+## 🛠️ Tech Stack
 
-🚀 Technologies Used
-HTML5: Structures the content.
+- **Frontend:** React, JavaScript, CSS  
+- **Backend:** Firebase Firestore, Firebase Authentication  
+- **Hosting:** Vercel
+- **Routing:** React Router
 
-CSS3: Handles styles and visual design.
+---
 
-JavaScript: The core programming language.
+## 🚀 Live Demo
 
-React: A JavaScript library for building user interfaces.
+🔗 [Visit the deployed app](https://momsitecl.vercel.app/)
 
-Node.js: A JavaScript runtime environment (used for development and building).
+---
 
-npm (Node Package Manager): The package manager for the project.
+## ⚙️ Setup Instructions
 
-⚙️ Installation and Usage
-Clone the repository:
+1. Clone the repository  
+```bash
 git clone https://github.com/khrisnagonm/momsite.git
-
-
-Navigate to the project directory:
 cd momsite
+```
 
-Install dependencies:
+2. Install dependencies  
+```bash
 npm install
+```
 
-Start the development server:
+3. Configure Firebase  
+- Create a Firebase project  
+- Enable Firestore and Authentication  
+- Add Firebase config to your project environment variables
+
+4. Run the development server  
+```bash
 npm start
+```
 
-The application will automatically open in your default browser at http://localhost:3000.
+---
 
-🤝 Contribution
-Contributions are welcome! If you have any suggestions or find a bug, please open an issue or submit a pull request.
+## 🤝 Contribution
 
-📄 License
-This project does not currently have an explicit license defined.
+Contributions welcome! Fork, create a branch, commit your changes, push, and open a pull request.
+
+---
