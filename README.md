@@ -50,3 +50,5 @@ npm start
 Contributions welcome! Fork, create a branch, commit your changes, push, and open a pull request.
 
 ---
+
+> Built with love by Khrisna 👨‍👩‍👦❤️
